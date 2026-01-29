@@ -1,0 +1,558 @@
+// import 'package:flutter/material.dart';
+// import 'package:get/get.dart';
+// import 'package:ionicons/ionicons.dart';
+// import 'package:shrachi/api/api_controller.dart';
+// import 'package:shrachi/views/enums/color_palette.dart';
+// import 'package:shrachi/views/enums/responsive.dart';
+// import 'package:shrachi/views/screens/tours/create_plan.dart';
+// import 'package:shrachi/views/screens/tours/show_tour.dart';
+//
+// class Tours extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     final ApiController controller = Get.put(ApiController());
+//     final screenWidth = MediaQuery.of(context).size.width;
+//
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Tour Plans'),
+//       ),
+//       body: Stack(
+//         children: [
+//           Container(
+//             padding: EdgeInsets.symmetric(vertical: 20.0, horizontal: 15.0),
+//             child: Column(
+//               children: [
+//                 Padding(
+//                   padding: EdgeInsets.symmetric(
+//                     horizontal: Responsive.isMd(context) ? 5 : 25,
+//                   ),
+//                   child: Align(
+//                     alignment: Responsive.isMd(context)
+//                         ? Alignment.centerLeft
+//                         : Alignment.centerRight,
+//                     child: SizedBox(
+//                       width: Responsive.isMd(context)
+//                           ? screenWidth
+//                           : screenWidth / 4,
+//                       child: TextField(
+//                         controller: controller.searchController,
+//                         decoration: InputDecoration(
+//                           prefixIcon: Icon(Ionicons.search),
+//                           hintText: 'Search by ID, Status, Visit Name...',
+//                           border: OutlineInputBorder(
+//                             borderSide: BorderSide(color: Colors.black),
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//                 SizedBox(height: 15.0),
+//                 Expanded(
+//                   child: Obx(() {
+//                     if (controller.isLoading.value) {
+//                       return Center(
+//                         child: CircularProgressIndicator(
+//                             color: ColorPalette.seaGreen600),
+//                       );
+//                     }
+//                     if (controller.errorMessage.value.isNotEmpty) {
+//                       return Center(
+//                         child: Padding(
+//                           padding: const EdgeInsets.all(16.0),
+//                           child: Text(
+//                             'Error: ${controller.errorMessage.value}',
+//                             textAlign: TextAlign.center,
+//                             style:
+//                             TextStyle(color: Colors.red, fontSize: 16),
+//                           ),
+//                         ),
+//                       );
+//                     }
+//                     if (controller.tourPlanList.isEmpty) {
+//                       return Center(
+//                         child: Text(
+//                           'No tour plans found.',
+//                           style: TextStyle(
+//                               fontSize: 16, color: Colors.grey[700]),
+//                         ),
+//                       );
+//                     }
+//                     return SingleChildScrollView(
+//                       padding: const EdgeInsets.only(bottom: 80),
+//                       child: Wrap(
+//                         spacing: 20,
+//                         runSpacing: 20,
+//                         alignment: WrapAlignment.start,
+//                         children: controller.tourPlanList.map((tourPlan) {
+//                           String title =
+//                               'TP-${tourPlan.id.toString().padLeft(8, '0')} '
+//                               '(${tourPlan.durationInDays} Days)';
+//
+//                           String statusText =
+//                               tourPlan.status.capitalizeFirst ??
+//                               tourPlan.status;
+//
+//                           Color statusColor = ColorPalette.pictonBlue500;
+//                           IconData statusIcon =
+//                               Ionicons.help_circle_outline;
+//                           bool showStats = true;
+//
+//                           if (tourPlan.status.toLowerCase() == 'pending') {
+//                             statusText = 'Pending';
+//                             statusColor = Colors.black;
+//                             statusIcon = Ionicons.time_outline;
+//                           } else if (tourPlan.status.toLowerCase() ==
+//                               'approved') {
+//                             statusText = 'Approved';
+//                             statusColor = ColorPalette.seaGreen600;
+//                             statusIcon =
+//                                 Ionicons.checkmark_circle_outline;
+//                           } else if (tourPlan.status.toLowerCase() ==
+//                               'rejected') {
+//                             statusText = 'Rejected';
+//                             statusColor = Colors.black;
+//                             statusIcon = Ionicons.close_circle_outline;
+//                           } else if (tourPlan.status.toLowerCase() ==
+//                               'completed') {
+//                             statusText = 'Completed';
+//                             statusColor = Colors.green.shade700;
+//                             statusIcon = Ionicons.flag_outline;
+//                           }
+//                           return SizedBox(
+//                             width: Responsive.isMd(context)
+//                                 ? screenWidth - 40
+//                                 : Responsive.isXl(context)
+//                                 ? (screenWidth / 2) - 30
+//                                 : (screenWidth / 3) - (20 * 2 / 3) - 10,
+//                             child: TourPlanWidget(
+//                               title: title,
+//                               onTap: () {
+//                                 Navigator.push(
+//                                   context,
+//                                   MaterialPageRoute(
+//                                     builder: (context) => ShowTour(tourPlan: tourPlan),
+//                                   ),
+//                                 );
+//                               },
+//                               intervalBackgroundColor: statusColor.withOpacity(0.1),
+//                               intervalIcon: Ionicons.calendar_outline,
+//                               intervalIconColor: statusColor,
+//                               intervalText: controller.formatDateRange(
+//                                   tourPlan.startDate, tourPlan.endDate),
+//                               intervalTextColor: statusColor,
+//                               showStats: showStats,
+//                               statsBackgroundColor: statusColor.withOpacity(0.1),
+//                               statsIcon: statusIcon,
+//                               statsIconColor: statusColor,
+//                               statsText: statusText,
+//                               statsTextColor: statusColor,
+//
+//                               // 👇 Yaha naya field (type dikhane ke liye)
+//                               extraText: tourPlan.visits.isNotEmpty
+//                                   ? "Type: ${tourPlan.visits.first.type},"
+//                                   : "Type: N/A",
+//                             ),
+//                           );
+//                         }).toList(),
+//                       ),
+//                     );
+//                   }),
+//                 ),
+//               ],
+//             ),
+//           ),
+//           // ✅ FAB fixed
+//           Positioned(
+//             bottom: 30,
+//             right: 30,
+//             child: FloatingActionButton(
+//               backgroundColor: ColorPalette.seaGreen600,
+//               onPressed: () {
+//                 Navigator.push(
+//                   context,
+//                   MaterialPageRoute(builder: (context) => CreatePlan()),
+//                 );
+//               },
+//               child: Icon(Ionicons.add_sharp, size: 30, color: Colors.white),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+//
+// class TourPlanWidget extends StatelessWidget {
+//   final String title;
+//   final VoidCallback onTap;
+//   final Color intervalBackgroundColor;
+//   final IconData intervalIcon;
+//   final Color intervalIconColor;
+//   final String intervalText;
+//   final Color intervalTextColor;
+//   final bool showStats;
+//   final Color statsBackgroundColor;
+//   final IconData statsIcon;
+//   final Color statsIconColor;
+//   final String statsText;
+//   final Color statsTextColor;
+//
+//   // 👇 naya field
+//   final String? extraText;
+//
+//   const TourPlanWidget({
+//     Key? key,
+//     required this.title,
+//     required this.onTap,
+//     required this.intervalBackgroundColor,
+//     required this.intervalIcon,
+//     required this.intervalIconColor,
+//     required this.intervalText,
+//     required this.intervalTextColor,
+//     required this.showStats,
+//     required this.statsBackgroundColor,
+//     required this.statsIcon,
+//     required this.statsIconColor,
+//     required this.statsText,
+//     required this.statsTextColor,
+//     this.extraText,
+//   }) : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Card(
+//       color: Color(0xffe4f0fa),
+//       child: InkWell(
+//         onTap: onTap,
+//         child: Padding(
+//           padding: const EdgeInsets.all(12.0),
+//           child: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+//               SizedBox(height: 6),
+//               Text(intervalText, style: TextStyle(color: intervalTextColor)),
+//               SizedBox(height: 6),
+//               if (extraText != null)
+//                 Text(extraText!, style: TextStyle(color: Colors.black54)),
+//               SizedBox(height: 6),
+//               Row(
+//                 children: [
+//                   Icon(statsIcon, color: statsIconColor, size: 18),
+//                   SizedBox(width: 6),
+//                   Text(statsText, style: TextStyle(color: statsTextColor)),
+//                 ],
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:ionicons/ionicons.dart';
+import 'package:shrachi/api/api_controller.dart';
+import 'package:shrachi/views/enums/color_palette.dart';
+import 'package:shrachi/views/enums/responsive.dart';
+import 'package:shrachi/views/screens/tours/create_plan.dart';
+import 'package:shrachi/views/screens/tours/show_tour.dart';
+
+class Tours extends StatefulWidget {
+  const Tours({super.key});
+
+  @override
+  State<Tours> createState() => _ToursState();
+}
+
+class _ToursState extends State<Tours> {
+  final ApiController controller = Get.put(ApiController());
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchTourPlans();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return Scaffold(
+      appBar: AppBar(title: Text('Tour Plans')),
+      body: Stack(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 20.0, horizontal: 15.0),
+            child: Column(
+              children: [
+                // 🔍 Search Box
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Responsive.isMd(context) ? 5 : 25,
+                  ),
+                  child: Align(
+                    alignment:
+                        Responsive.isMd(context)
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                    child: SizedBox(
+                      width:
+                          Responsive.isMd(context)
+                              ? screenWidth
+                              : screenWidth / 4,
+                      child: TextField(
+                        controller: controller.searchController,
+                        decoration: InputDecoration(
+                          prefixIcon: Icon(Ionicons.search),
+                          hintText: 'Search by ID, Status, Visit Name...',
+                          border: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black),
+                          ),
+                        ),
+                        onChanged:
+                            (value) => controller.filterSearchResults(value),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 15.0),
+
+                // 📌 Data Section
+                Expanded(
+                  child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          color: ColorPalette.seaGreen600,
+                        ),
+                      );
+                    }
+                    if (controller.tourPlanList.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'No tour plans found.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // return // 👇 Yahan RefreshIndicator lagaya hai
+                    return RefreshIndicator(
+                      color: ColorPalette.seaGreen600,
+                      onRefresh: () async => controller.fetchTourPlans(),
+                      child: SingleChildScrollView(
+                        physics: AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(bottom: 80),
+                        child: Wrap(
+                          spacing: 20,
+                          runSpacing: 4,
+                          alignment: WrapAlignment.start,
+                          children:
+                              controller.tourPlanList.map((tourPlan) {
+                                // Title
+                                String title = tourPlan.serial_no.toString();
+                                // 'TP-${tourPlan.serial_no.toString().padLeft(8, '0')} '
+                                // '(${tourPlan.durationInDays} Days)';
+
+                                // Status Logic
+                                String statusText =
+                                    tourPlan.status.capitalizeFirst ??
+                                    tourPlan.status;
+
+                                Color statusColor;
+                                IconData statusIcon;
+
+                                switch (tourPlan.status.toLowerCase()) {
+                                  case 'pending':
+                                    statusText = 'Pending';
+                                    statusColor = Colors.red;
+                                    statusIcon = Ionicons.time_outline;
+                                    break;
+                                  case 'confirmed':
+                                    statusText = 'Approved';
+                                    statusColor = ColorPalette.seaGreen600;
+                                    statusIcon =
+                                        Ionicons.checkmark_circle_outline;
+                                    break;
+                                  case 'rejected':
+                                    statusText = 'Rejected';
+                                    statusColor = Colors.red;
+                                    statusIcon = Ionicons.close_circle_outline;
+                                    break;
+                                  // case 'confirmed':
+                                  //   statusText = 'confirmed';
+                                  //   statusColor = Colors.green.shade700;
+                                  //   statusIcon = Ionicons.flag_outline;
+                                  //   break;
+                                  default:
+                                    statusText = 'Unknown';
+                                    statusColor = ColorPalette.pictonBlue500;
+                                    statusIcon = Ionicons.help_circle_outline;
+                                }
+
+                                return SizedBox(
+                                  width:
+                                      Responsive.isMd(context)
+                                          ? screenWidth - 40
+                                          : Responsive.isXl(context)
+                                          ? (screenWidth / 2) - 30
+                                          : (screenWidth / 3) -
+                                              (20 * 2 / 3) -
+                                              10,
+                                  child: TourPlanWidget(
+                                    title: title,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => ShowTour(
+                                                tourPlan: tourPlan,
+                                                status: tourPlan.status,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    statusColor: statusColor, // 👈 yeh add kiya
+                                    intervalIcon: Ionicons.calendar_outline,
+                                    intervalText: controller.formatDateRange(
+                                      tourPlan.startDate,
+                                      tourPlan.endDate,
+                                    ),
+                                    statsIcon: statusIcon,
+                                    statsText: statusText,
+                                    // extraText: tourPlan.visits.isNotEmpty
+                                    //     ? "Type: ${tourPlan.visits.first.type}"
+                                    //     : "Type: N/A",
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+
+          // ➕ FAB
+          Positioned(
+            bottom: 30,
+            right: 30,
+            child: FloatingActionButton(
+              backgroundColor: ColorPalette.seaGreen600,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CreatePlan()),
+                );
+              },
+              child: Icon(Ionicons.add_sharp, size: 30, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class TourPlanWidget extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+  final Color statusColor; // 👈 new field
+  final IconData intervalIcon;
+  final String intervalText;
+  final IconData statsIcon;
+  final String statsText;
+  final String? extraText;
+
+  const TourPlanWidget({
+    super.key,
+    required this.title,
+    required this.onTap,
+    required this.statusColor,
+    required this.intervalIcon,
+    required this.intervalText,
+    required this.statsIcon,
+    required this.statsText,
+    this.extraText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Color(0xffe4f0fa), // Card ka background status ke hisaab se
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 🔹 Title
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: statusColor, // status ke hisaab se text color
+                ),
+              ),
+              SizedBox(height: 6),
+
+              // 🔹 Interval Row
+              Row(
+                children: [
+                  Icon(intervalIcon, size: 18, color: statusColor),
+                  SizedBox(width: 6),
+                  Text(intervalText, style: TextStyle(color: statusColor)),
+                ],
+              ),
+              SizedBox(height: 6),
+
+              // 🔹 Extra Text (Type)
+              if (extraText != null)
+                Text(
+                  extraText!,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+              SizedBox(height: 6),
+
+              // 🔹 Status Row
+              Row(
+                children: [
+                  Icon(statsIcon, color: statusColor, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    statsText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,576 @@
+import 'package:easy_stepper/easy_stepper.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:ionicons/ionicons.dart';
+import 'package:shrachi/models/TourPlanModel/FetchTourPlanModel/FetchTourPlaneModel.dart';
+import 'package:shrachi/views/enums/color_palette.dart';
+import 'package:shrachi/views/enums/responsive.dart';
+import 'package:shrachi/views/screens/tours/update_plan.dart';
+
+class ShowTour extends StatefulWidget {
+  final TourPlan tourPlan;
+  final String status;
+  const ShowTour({super.key, required this.tourPlan, required this.status});
+
+  @override
+  State<ShowTour> createState() => _ShowTourState();
+}
+
+class _ShowTourState extends State<ShowTour> {
+  int activeStep = 0;
+
+  int getStep(String status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return 0;
+      case "approval":
+        return 1;
+      case "confirmed":
+        return 2;
+      case "cancelled":
+        return 3;
+      default:
+        return 0;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      activeStep = getStep(widget.tourPlan.status);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(title: Text('Show tour plan')),
+        body: Container(
+          padding: EdgeInsets.symmetric(horizontal: 15.0, vertical: 10.0),
+          child: Column(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 15.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (activeStep != 2) ...[
+                      SizedBox(
+                        width:
+                            Responsive.isMd(context)
+                                ? screenWidth / 2 - 30
+                                : screenWidth / 4 - 30,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: ColorPalette.seaGreen600,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 15.0),
+                              ),
+                              onPressed: () {},
+                              child: Icon(Ionicons.checkmark_sharp, size: 30),
+                            ),
+                            SizedBox(height: 10.0),
+                            Text(
+                              'Send For Approval',
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 10.0),
+                    ],
+                    if (activeStep != 2) ...[
+                      SizedBox(
+                        width:
+                            Responsive.isMd(context)
+                                ? screenWidth / 2 - 30
+                                : screenWidth / 4 - 30,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: ColorPalette.shark800,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 15.0),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => UpdatePlan(
+                                          tourPlan: widget.tourPlan,
+                                        ),
+                                  ),
+                                );
+                              },
+                              child: Icon(Ionicons.pencil_sharp, size: 30),
+                            ),
+                            SizedBox(height: 10.0),
+                            Text(
+                              'Modify Plan',
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(height: 10),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width:
+                            Responsive.isMd(context)
+                                ? screenWidth
+                                : Responsive.isXl(context)
+                                ? screenWidth * 0.60
+                                : screenWidth * 0.40,
+                        child: Card(
+                          elevation: 6,
+                          shadowColor: Colors.black.withValues(alpha: 0.2),
+                          color: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Table(
+                              children: [
+                                TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        'Plan Name',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        widget.tourPlan.serial_no ?? '',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        'Start Date',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        DateFormat('EEEE, dd MMM yyyy').format(
+                                          DateTime.parse(
+                                            widget.tourPlan.startDate,
+                                          ),
+                                        ),
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        'End Date',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        DateFormat('EEEE, dd MMM yyyy').format(
+                                          DateTime.parse(
+                                            widget.tourPlan.endDate,
+                                          ),
+                                        ),
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        'Planned Tour Days',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        '${widget.tourPlan.durationInDays}',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        'Actual Tour Days',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 4.0,
+                                      ),
+                                      child: Text(
+                                        '0',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20.0),
+                      EasyStepper(
+                        activeStep: activeStep,
+                        showLoadingAnimation: false,
+                        internalPadding: 0,
+                        stepRadius: 12,
+                        fitWidth: true,
+                        lineStyle: LineStyle(
+                          lineLength:
+                              Responsive.isMd(context)
+                                  ? screenWidth / 4 - 20
+                                  : screenWidth / 6 - 20,
+                          lineType: LineType.normal,
+                          lineSpace: 0,
+                          activeLineColor: Colors.black.withValues(alpha: 0.3),
+                          finishedLineColor: Colors.black.withValues(
+                            alpha: 0.3,
+                          ),
+                          unreachedLineColor: Colors.black.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                        showStepBorder: false,
+                        steps: [
+                          EasyStep(
+                            customStep: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.white,
+                              child: CircleAvatar(
+                                radius: 11,
+                                backgroundColor:
+                                    activeStep >= 0
+                                        ? ColorPalette.seaGreen500
+                                        : Color(0xff6A7580),
+                              ),
+                            ),
+                            customTitle: Text(
+                              'New',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: Responsive.isSm(context) ? 14 : 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          EasyStep(
+                            customStep: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.white,
+                              child: CircleAvatar(
+                                radius: 11,
+                                backgroundColor:
+                                    activeStep >= 1
+                                        ? ColorPalette.seaGreen500
+                                        : Color(0xff6A7580),
+                              ),
+                            ),
+                            customTitle: Text(
+                              'Send For Approval',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: Responsive.isSm(context) ? 14 : 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          EasyStep(
+                            customStep: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.white,
+                              child: CircleAvatar(
+                                radius: 11,
+                                backgroundColor:
+                                    activeStep == 3
+                                        ? Color(0xff6A7580)
+                                        : activeStep >= 2
+                                        ? ColorPalette.seaGreen500
+                                        : Color(0xff6A7580),
+                              ),
+                            ),
+                            customTitle: Text(
+                              'Approved',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: Responsive.isSm(context) ? 14 : 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          EasyStep(
+                            customStep: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.white,
+                              child: CircleAvatar(
+                                radius: 11,
+                                backgroundColor:
+                                    activeStep >= 3
+                                        ? Colors.red
+                                        : Color(0xff6A7580),
+                              ),
+                            ),
+                            customTitle: Text(
+                              'Rejected',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: Responsive.isSm(context) ? 14 : 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      SizedBox(
+                        width:
+                            Responsive.isMd(context)
+                                ? screenWidth - 20
+                                : screenWidth / 3 - 20,
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: widget.tourPlan.visits.length,
+                          separatorBuilder:
+                              (context, index) => SizedBox(height: 15),
+                          itemBuilder: (context, index) {
+                            final visit = widget.tourPlan.visits[index];
+                            return Container(
+                              decoration: BoxDecoration(color: Colors.white),
+                              padding: EdgeInsets.all(10.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Date : ${DateFormat('dd MMM, yyyy').format(DateTime.parse(visit.visitDate))}',
+                                    style: TextStyle(
+                                      color: ColorPalette.pictonBlue500,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+                                  Card(
+                                    elevation: 5,
+                                    shadowColor: Colors.black.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    color: Colors.white,
+                                    child: Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Name : ${visit.name}'),
+                                          SizedBox(height: 10),
+                                          Text(
+                                            'Type : ${visit.type.replaceAll('_', ' ')}',
+                                          ),
+                                          if (visit.type != 'new_lead' &&
+                                              visit.type !=
+                                                  'followup_lead') ...[
+                                            SizedBox(height: 10),
+                                            Text(
+                                              'Purpose of visit : ${visit.visitPurpose}',
+                                            ),
+                                          ],
+                                          if (visit.type == 'new_lead' ||
+                                              visit.type ==
+                                                  'followup_lead') ...[
+                                            SizedBox(height: 10),
+                                            Text(
+                                              'Lead Type : ${visit.lead?.type}',
+                                            ),
+                                            SizedBox(height: 10),
+                                            Text(
+                                              'Lead Source : ${visit.lead?.leadSource}',
+                                            ),
+                                            SizedBox(height: 10),
+                                            Text(
+                                              'State : ${visit.lead?.state}',
+                                            ),
+                                          ],
+                                          SizedBox(height: 10),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 10,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  visit.isApproved != 0
+                                                      ? Colors.green
+                                                      : Colors.red.shade300,
+                                              borderRadius:
+                                                  BorderRadius.circular(50),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  visit.isApproved != 0
+                                                      ? Icons.check_circle
+                                                      : Icons.timer_outlined,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  visit.isApproved != 0
+                                                      ? "Approved"
+                                                      : "Pending",
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  // ListView.separated(
+                                  //   separatorBuilder:
+                                  //       (context, index) =>
+                                  //           SizedBox(height: 20),
+                                  //   itemCount: 2,
+                                  //   shrinkWrap: true,
+                                  //   physics: NeverScrollableScrollPhysics(),
+                                  //   itemBuilder: (context, index) {
+                                  //     final visit =
+                                  //         widget.tourPlan.visits[index];
+                                  //     return
+                                  //      ;
+                                  //   },
+                                  // ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
