@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>&lt;key&gt;BGTaskSchedulerPermittedIdentifiers&lt;/key&gt;
+&lt;array&gt;
+    &lt;string&gt;com.equiconsulting.shracricm.background&lt;/string&gt;
+&lt;/array&gt;
+</key>
+	<string>com.equiconsulting.shracricm.background</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -27,7 +33,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>We need camera access to take photos for visit verification.</string>
+	<string>This app requires access to the camera to take photos for checkout.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Location required for background tracking</string>
 	<key>NSLocationAlwaysUsageDescription</key>
@@ -35,9 +41,9 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location required for visit tracking</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>We need microphone access for camera functionality.</string>
+	<string>This app requires access to the microphone for camera features.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to select images.</string>
+	<string>This app requires access to the photo library to save and select photos.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
@@ -48,6 +54,8 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<key>UIStatusBarStyle</key>
+	<string></string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -61,5 +69,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
 </dict>
 </plist>

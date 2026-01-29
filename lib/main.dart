@@ -1,48 +1,42 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:no_screenshot/no_screenshot.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shrachi/service/background_service.dart';
 import 'package:shrachi/service/tracking_service.dart';
 import 'package:shrachi/views/enums/responsive.dart';
-import 'package:shrachi/views/screens/LogoutSession_Screen/ForceLogoutDialog.dart';
 import 'package:uid/uid.dart';
 import 'OfflineDatabase/ConnectivityService.dart';
-import 'api/api_controller.dart';
 import 'api/routes.dart';
 import 'global.dart';
 final GlobalKey<ScaffoldMessengerState> snackbarKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
+  // Generate a basic unique ID Uid as Unic Id: 1764843747bg404
+  // String id = UId.getId();
+  // print("Uid as Unic Id: ${id}"); // Example: 4824aF254606141
   WidgetsFlutterBinding.ensureInitialized();
   // Generate Unique ID once and store globally
   globalUniqueId = UId.getId();
-  final prefs = await SharedPreferences.getInstance();
-  final forceLogout = prefs.getBool("force_logout") ?? false;
   print("Global Unique ID: $globalUniqueId");
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarIconBrightness: Brightness.light),
   );
-  // if(!kIsWeb){
-  //   await initializeService();
-  //   await initializeTrackingService();
-  // }
-  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+  if(!kIsWeb){
     await initializeService();
     await initializeTrackingService();
-  } else {
-    debugPrint('Skipping background service for web.');
   }
-  Get.put(ApiController());
+  // await initializeService();
+  // await initializeTrackingService();
+  // if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+  //   await initializeService();
+  // } else {
+  //   debugPrint('Skipping background service for web.');
+  // }
   Get.put(ConnectivityService());
-  runApp(
-    forceLogout ? const ForceLogoutScreen() : const MyApp(),
-    //const MyApp(),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {

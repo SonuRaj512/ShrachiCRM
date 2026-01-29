@@ -264,7 +264,7 @@
 //       },
 //     );
 //   }
-
+//
 //   // ---------------- Back Button Logic ----------------
 //   Future<bool> _onWillPop() async {
 //     if (!isCheckedIn) {
@@ -580,8 +580,6 @@
 //     );
 //   }
 // }
-
-
 import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
@@ -589,11 +587,11 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../api/checkin_controller.dart';
 
+// --- Local Storage for Check-in Status ---
 class CheckinStorage {
   static Future<void> saveCheckinStatus(int tourPlanId, int visitId, bool status) async {
     final prefs = await SharedPreferences.getInstance();
@@ -633,10 +631,9 @@ class _CheckinNoMap_ScreenState extends State<CheckinNoMap_Screen> {
   final TextEditingController additionalInfoController = TextEditingController();
   final CheckinController _checkinController = Get.put(CheckinController());
 
-
   StreamSubscription<Position>? _positionStream;
-  final RxBool _isLocationLoading = true.obs;
-  final Rxn<LatLng> _currentPosition = Rxn<LatLng>();
+  LatLng? _currentPosition;
+  bool _isLocationLoading = true; // ✅ Loader ke liye naya variable
   List<File> images = [];
   CameraController? cameraController;
   bool isCheckedIn = false;
@@ -645,7 +642,9 @@ class _CheckinNoMap_ScreenState extends State<CheckinNoMap_Screen> {
   @override
   void initState() {
     super.initState();
+    // ✅ Screen load hote hi location mangna shuru karo
     _initLocationLogic();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       isCheckedIn = await CheckinStorage.getCheckinStatus(widget.tourPlanId, widget.visitId);
       if (!isCheckedIn) {
@@ -655,12 +654,13 @@ class _CheckinNoMap_ScreenState extends State<CheckinNoMap_Screen> {
     });
   }
 
+  // ✅ Location Permission aur Current Location fetch karne ka function
   Future<void> _initLocationLogic() async {
-    _isLocationLoading.value = true;
+    setState(() => _isLocationLoading = true);
 
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _isLocationLoading.value = false;
+      setState(() => _isLocationLoading = false);
       return;
     }
 
@@ -668,35 +668,64 @@ class _CheckinNoMap_ScreenState extends State<CheckinNoMap_Screen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        _isLocationLoading.value = false;
+        setState(() => _isLocationLoading = false);
         return;
       }
     }
 
     try {
+      // ✅ Sabse pehle 'getCurrentPosition' se turant location lo (Ye fast hai)
       Position pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // Value update karein
-      _currentPosition.value = LatLng(pos.latitude, pos.longitude);
-      _isLocationLoading.value = false;
+      if (mounted) {
+        setState(() {
+          _currentPosition = LatLng(pos.latitude, pos.longitude);
+          _isLocationLoading = false;
+        });
+      }
 
+      // ✅ Uske baad background mein stream start karo updates ke liye
       _positionStream = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.best,
           distanceFilter: 1,
         ),
       ).listen((Position pos) {
-        _currentPosition.value = LatLng(pos.latitude, pos.longitude);
+        if (mounted) {
+          setState(() {
+            _currentPosition = LatLng(pos.latitude, pos.longitude);
+          });
+        }
       });
     } catch (e) {
-      _isLocationLoading.value = false;
+      if (mounted) setState(() => _isLocationLoading = false);
       print("Location Error: $e");
     }
   }
 
-  //BottomSheet
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text("Location Permission"),
+        content: const Text("Location permission is permanently denied. Please enable it from Settings."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              openAppSettings();
+              Navigator.pop(context);
+            },
+            child: const Text("Open Settings"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _openInitialBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -706,67 +735,71 @@ class _CheckinNoMap_ScreenState extends State<CheckinNoMap_Screen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 10, right: 10,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 25,
-              top: 4,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Please Click the Check-In Button",
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                    ),
-                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.red))
-                  ],
-                ),
-                const SizedBox(height: 25),
-                SizedBox(
-                  width: double.infinity,
-                  child: Obx(() { // 🔥 Obx yaha hona chahiye, taaki button update ho sake
-                    return ElevatedButton(
-                      // Location load ho rahi ho ya position null ho toh button disable (null) rahega
-                      onPressed: (_isLocationLoading.value || _currentPosition.value == null)
-                          ? null
-                          : () async {
-                        bool success = await _checkinController.checkIncontroller(
-                          lat: _currentPosition.value!.latitude,
-                          lng: _currentPosition.value!.longitude,
-                          tourPlanId: widget.tourPlanId,
-                          visitId: widget.visitId,
-                          convinceType: "complaint",
-                        );
-
-                        if (success) {
-                          isCheckedIn = true;
-                          await CheckinStorage.saveCheckinStatus(widget.tourPlanId, widget.visitId, true);
-                          Navigator.pop(context);
-                          setState(() {});
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        disabledBackgroundColor: Colors.grey.shade300, // Disable color
+        // ✅ StatefulBuilder ka use kiya hai taaki BottomSheet ke andar ka button update ho sake
+        return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              return SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 25,
+                    top: 35,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Please Click the Check-In Button",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                        textAlign: TextAlign.center,
                       ),
-                      child: (_isLocationLoading.value)
-                          ? const SizedBox(
-                        height: 20, width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                          : const Text("Check-In", style: TextStyle(color: Colors.white, fontSize: 16)),
-                    );
-                  }),
+                      const SizedBox(height: 25),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: (_isLocationLoading || _currentPosition == null)
+                              ? null // ✅ Jab tak location nahi milti, button clickable nahi hoga
+                              : () async {
+                            bool success = await _checkinController.checkIncontroller(
+                              lat: _currentPosition!.latitude,
+                              lng: _currentPosition!.longitude,
+                              tourPlanId: widget.tourPlanId,
+                              visitId: widget.visitId,
+                              convinceType: "complaint",
+                            );
+
+                            if (success) {
+                              isCheckedIn = true;
+                              await CheckinStorage.saveCheckinStatus(widget.tourPlanId, widget.visitId, true);
+                              Navigator.pop(context);
+                              setState(() {});
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: (_isLocationLoading)
+                              ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                          )
+                              : const Text("Check-In", style: TextStyle(color: Colors.white, fontSize: 16)),
+                        ),
+                      ),
+                      // Agar location nahi mil rahi toh user ko batao
+                      if (_isLocationLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 10),
+                          child: Text("Fetching high accuracy location...", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
+              );
+            }
         );
       },
     );
@@ -818,87 +851,6 @@ class _CheckinNoMap_ScreenState extends State<CheckinNoMap_Screen> {
     );
   }
 
-  void _showCheckinRequiredDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 🛑 Icon Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.info_outline_rounded, color: Colors.red.shade600, size: 40),
-            ),
-            const SizedBox(height: 20),
-
-            // 📝 Title Section
-            const Text(
-              "Action Required",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // ✉️ Message Section
-            const Text(
-              "Please complete Check-In first to proceed with Check-Out.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.black54,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 🚀 Button Section
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _openInitialBottomSheet(); // Open check-in sheet
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  "Go to Check-In",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-
-            // ✖️ Cancel Option
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                "Maybe Later",
-                style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
   @override
   void dispose() {
     _positionStream?.cancel();
@@ -913,16 +865,9 @@ class _CheckinNoMap_ScreenState extends State<CheckinNoMap_Screen> {
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.blueAccent,
+          backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
-          title: Center(
-            child: Text(
-              widget.Type.isNotEmpty
-                  ? widget.Type[0].toUpperCase() + widget.Type.substring(1)
-                  : widget.Type,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
+          title: Text(widget.Type,style: TextStyle(color: Colors.white),),
         ),
         body: SingleChildScrollView(
           child: Column(
@@ -1034,21 +979,16 @@ class _CheckinNoMap_ScreenState extends State<CheckinNoMap_Screen> {
                         width: double.infinity,
                         child: Obx(() {
                           return ElevatedButton(
-                            onPressed: (_isLocationLoading.value || _currentPosition.value == null || _checkinController.isLoading.value)
+                            onPressed: (_isLocationLoading || _currentPosition == null || _checkinController.isLoading.value)
                                 ? null
                                 : () async {
-                              // 🔴 Validation: Agar check-in nahi hua hai
-                              if (!isCheckedIn) {
-                                _showCheckinRequiredDialog();
-                                return;
-                              }
                               if (images.isEmpty) {
                                 Get.snackbar("Required", "Please upload at least one photo", backgroundColor: Colors.red, colorText: Colors.white);
                                 return;
                               }
                               await _checkinController.CheckoutController(
-                                lat: _currentPosition.value!.latitude,
-                                lng: _currentPosition.value!.longitude,
+                                lat: _currentPosition!.latitude,
+                                lng: _currentPosition!.longitude,
                                 tourPlanId: widget.tourPlanId,
                                 visitId: widget.visitId,
                                 images: images,

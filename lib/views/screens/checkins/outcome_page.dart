@@ -245,16 +245,14 @@
 //     );
 //   }
 // }
-
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shrachi/api/api_controller.dart';
 import 'package:shrachi/api/checkin_controller.dart';
 import 'package:shrachi/models/TourPlanModel/lead_status_model.dart';
 import 'package:shrachi/views/enums/responsive.dart';
+
 import '../../../api/outcome_controller.dart';
-import '../multicolor_progressbar_screen.dart';
 
 class OutcomePage extends StatefulWidget {
   final int tourPlanId;
@@ -334,21 +332,21 @@ class _OutcomePageState extends State<OutcomePage> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.blueAccent,
+          backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
           leading: const BackButton(color: Colors.white),
-          title: const Text("Outcome Screen", style: TextStyle(color: Colors.white)),
+          title: const Text("Outcome", style: TextStyle(color: Colors.white)),
           elevation: 0,
         ),
         body: Obx(() {
              // 🔹 Show loader while fetching data
              if (visitDetailController.isLoading.value) {
                 return const Center(
-                   child: MultiColorCircularLoader(size: 40,)
-                   //CircularProgressIndicator(color: Colors.blue),
+                   child: CircularProgressIndicator(color: Colors.blue),
                 );
              }
 
+             final visitType = visitDetailController.visitType.value;
           return SingleChildScrollView(
             child: Align(
               alignment: Alignment.center,
@@ -366,7 +364,7 @@ class _OutcomePageState extends State<OutcomePage> {
                     child: Column(
                       children: [
                         // 🔹 Condition to switch UI
-                        if (visitType == "new_lead" || visitType == "followup_lead") ...[
+                        if (visitType == "new_lead") ...[
                           /// 🟢 New Lead UI (Lead Status + Dates + Outcome)
                           Card(
                             color: Colors.white,
@@ -393,22 +391,21 @@ class _OutcomePageState extends State<OutcomePage> {
                                   ),
 
                                   const SizedBox(height: 16),
-                                  ///this code is follow up date
-                                  // TextFormField(
-                                  //   readOnly: true,
-                                  //   decoration: InputDecoration(
-                                  //     labelText: "Follow Up Date",
-                                  //     labelStyle: const TextStyle(color: Colors.black),
-                                  //     border: const OutlineInputBorder(),
-                                  //     suffixIcon: const Icon(Icons.calendar_today, color: Colors.black),
-                                  //   ),
-                                  //   onTap: () => _selectDate(context, true),
-                                  //   controller: TextEditingController(
-                                  //     text: _followUpDate != null
-                                  //         ? "${_followUpDate!.day}-${_followUpDate!.month}-${_followUpDate!.year}"
-                                  //         : "",
-                                  //   ),
-                                  // ),
+                                  TextFormField(
+                                    readOnly: true,
+                                    decoration: InputDecoration(
+                                      labelText: "Follow Up Date",
+                                      labelStyle: const TextStyle(color: Colors.black),
+                                      border: const OutlineInputBorder(),
+                                      suffixIcon: const Icon(Icons.calendar_today, color: Colors.black),
+                                    ),
+                                    onTap: () => _selectDate(context, true),
+                                    controller: TextEditingController(
+                                      text: _followUpDate != null
+                                          ? "${_followUpDate!.day}-${_followUpDate!.month}-${_followUpDate!.year}"
+                                          : "",
+                                    ),
+                                  ),
                                   const SizedBox(height: 16),
                                   TextFormField(
                                     readOnly: true,
@@ -511,7 +508,7 @@ class _OutcomePageState extends State<OutcomePage> {
                        //🔘 Common Button
                         ElevatedButton(
                           onPressed: () async {
-                            await _checkinController.OutComeVisit(
+                            await _checkinController.checkOutVisit(
                               tourPlanId: widget.tourPlanId,
                               visitId: widget.visitId,
                               followupDate: _followUpDate?.toString() ?? "",
@@ -529,7 +526,8 @@ class _OutcomePageState extends State<OutcomePage> {
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(color: Colors.white),
-                          ) : const Text(
+                          )
+                           : const Text(
                             "Submit Outcome",
                             style: TextStyle(fontSize: 16, color: Colors.white),
                           ),

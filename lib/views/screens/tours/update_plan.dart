@@ -288,7 +288,6 @@ class _UpdatePlanState extends State<UpdatePlan> {
     for (var v in widget.tourPlan.visits) {
       print("VISIT ${v.name} → isApproved = ${v.isApproved}");
     }
-
     return SafeArea(
       child: Scaffold(
         appBar: PreferredSize(

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:intl/intl.dart';
@@ -20,7 +19,7 @@ import 'package:shrachi/views/enums/color_palette.dart';
 import 'package:shrachi/views/enums/responsive.dart';
 import 'package:get/get.dart';
 
-import '../multicolor_progressbar_screen.dart';
+import '../CustomErrorMessage/CustomeErrorMessage.dart';
 
 class CreatePlan extends StatefulWidget {
   final String? tourid;
@@ -90,8 +89,7 @@ class _CreatePlanState extends State<CreatePlan> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _contactPersonController = TextEditingController();
   final TextEditingController _stateController = TextEditingController();
-  final TextEditingController _pincodeController = TextEditingController();
-  final TextEditingController  _cityController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
 
   // final TextEditingController _currentBusinessController TextEditingController();
   final TextEditingController _leadTypeOtherController = TextEditingController();
@@ -143,7 +141,7 @@ class _CreatePlanState extends State<CreatePlan> {
   String? selectedOthers;
   String? selectedLeadStatus;
   Visit? followLeadVisit;
-  bool isLoading = false;
+
   bool isGstRegistered = false;
 
   void _clearForm() {
@@ -160,7 +158,6 @@ class _CreatePlanState extends State<CreatePlan> {
       _contactPersonController.clear();
       _stateController.clear();
       _cityController.clear();
-      _pincodeController.clear();
       _addressController.clear();
       selectedBusiness = null;
       selectedLeadType = null;
@@ -379,14 +376,8 @@ class _CreatePlanState extends State<CreatePlan> {
     return (a?.toString().trim() ?? "") == (b?.toString().trim() ?? "");
   }
 
-  // Update this function in your code
   bool _isSameEntry(Map a, Map b) {
     if (!_sameStr(a["type"], b["type"])) return false;
-
-    // ✅ VALIDATION: If Follow-up, check unique visit_id
-    if (a["type"] == "followup_lead") {
-      return _sameStr(a["visit_id"], b["visit_id"]);
-    }
 
     final name1 = a["name"]?.toString().trim() ?? "";
     final name2 = b["name"]?.toString().trim() ?? "";
@@ -401,28 +392,12 @@ class _CreatePlanState extends State<CreatePlan> {
 
     return name1 == name2 && p1 == p2;
   }
-  // bool _isSameEntry(Map a, Map b) {
-  //   if (!_sameStr(a["type"], b["type"])) return false;
-  //
-  //   final name1 = a["name"]?.toString().trim() ?? "";
-  //   final name2 = b["name"]?.toString().trim() ?? "";
-  //
-  //   final p1 = (a["visit_purpose"]?.toString().trim().isEmpty ?? true)
-  //       ? "Nil"
-  //       : a["visit_purpose"].toString().trim();
-  //
-  //   final p2 = (b["visit_purpose"]?.toString().trim().isEmpty ?? true)
-  //       ? "Nil"
-  //       : b["visit_purpose"].toString().trim();
-  //
-  //   return name1 == name2 && p1 == p2;
-  // }
-  //
+
   void addVisitData({bool isNextVisit = false}) {
     setState(() {
       if (isNextVisit) {
         _visitDateController.clear();
-         selectedDealer = null;
+        selectedDealer = null;
         _departmentController.clear();
         _warehouseController.clear();
         _transitController.clear();
@@ -435,7 +410,6 @@ class _CreatePlanState extends State<CreatePlan> {
         selectedValue = null;
         isGstRegistered = false;
         _leadNameController.clear();
-        followLeadVisit = null;
         return;
       }
 
@@ -465,8 +439,7 @@ class _CreatePlanState extends State<CreatePlan> {
             "primary_no": _phoneController.text.trim(),
             "contact_person": _contactPersonController.text.trim(),
             "state": _stateController.text.trim(),
-            "city":  _cityController.text.trim(),
-            "pin_code": _pincodeController.text.trim(),
+            "city": _cityController.text.trim(),
             "lead_type": selectedLeadType?.name,
             "lead_source": selectedLeadSource?.name,
             "address": _addressController.text.trim(),
@@ -475,23 +448,10 @@ class _CreatePlanState extends State<CreatePlan> {
             "is_gst_registered": isGstRegistered,
           };
           break;
-        // case "FollowUp Leads":
-        //   newEntry = {
-        //     "visit_id": followLeadVisit?.id,
-        //     ///"name": followLeadVisit?.name, // ✅ Added name to show in the list
-        //     "type": "followup_lead",
-        //     "visit_purpose": "Follow up visit",
-        //   };
-        //   break;
         case "FollowUp Leads":
-        // Agar lead select nahi ki hai toh add mat karo
-          if (followLeadVisit == null || followLeadVisit?.id == null) {
-            return; // Stop execution
-          }
           newEntry = {
             "visit_id": followLeadVisit?.id,
             "type": "followup_lead",
-            "visit_purpose": "Follow up visit",
           };
           break;
         case "Department":
@@ -556,6 +516,13 @@ class _CreatePlanState extends State<CreatePlan> {
           );
           return;
       }
+
+      // Auto-default purpose
+      // if ((newEntry["visit_purpose"] == null ||
+      //     newEntry["visit_purpose"].toString().trim().isEmpty)) {
+      //   newEntry["visit_purpose"] = "Nil;
+      // }
+
       // Must have name or purpose
       if (["service", "activity", "others", "transit"]
           .contains(newEntry["type"])) {
@@ -576,34 +543,37 @@ class _CreatePlanState extends State<CreatePlan> {
         final p = (newEntry["visit_purpose"] ?? "").toString().trim();
         if (n.isEmpty && p.isEmpty) return;
       }
-// --- Validation: Same client, same day check ---
-      int existingIndex = visits.indexWhere((v) => _sameStr(v["visit_date"], visitDate));
 
+      // Find row for same date
+      int existingIndex =
+      visits.indexWhere((v) => _sameStr(v["visit_date"], visitDate));
+
+      // NEW FIX: Check duplicate BEFORE adding row
       if (existingIndex != -1) {
-        List existingDayData = visits[existingIndex]["data"];
+        List row = visits[existingIndex]["data"];
+        if (row.any((e) => _isSameEntry(e, newEntry))) {
+          return; // STOP DUPLICATE
+        }
+      }
 
-        // Check if this client is already added FOR THIS DATE
-        bool alreadyAddedToday = existingDayData.any((e) => _isSameEntry(e, newEntry));
-
-        if (alreadyAddedToday) {
-          Get.snackbar(
-            "Message",
-            "This client is already added for this selected date.",
-            backgroundColor: Colors.orange,
-            colorText: Colors.white,
-          );
-          return; // Yahin se bahar nikal jao, add mat karo
+      // If no row found → before making new row also check duplicates globally
+      if (existingIndex == -1) {
+        // SAFETY: check across whole list also
+        for (var v in visits) {
+          for (var e in (v["data"] ?? [])) {
+            if (_isSameEntry(e, newEntry)) return;
+          }
         }
 
-        // Agar duplicate nahi hai, toh purani date entry mein data add karo
-        visits[existingIndex]["data"].add(newEntry);
-      } else {
-        // Agar is date ki pehli entry hai, toh naya row banao
         visits.add({
           "visit_date": visitDate,
           "data": [newEntry],
         });
+        return;
       }
+
+      // Otherwise add inside existing row
+      visits[existingIndex]["data"].add(newEntry);
     });
   }
 
@@ -985,7 +955,6 @@ class _CreatePlanState extends State<CreatePlan> {
       }) {
     return StatefulBuilder(
       builder: (context, setState) {
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1025,7 +994,8 @@ class _CreatePlanState extends State<CreatePlan> {
                     ? (availableDealers ?? apiController.dealers).firstWhere(
                       (d) => d.id == dealerId,
                   orElse: () => Dealer(id: dealerId!, name: dealerName ?? ''),
-                ) : null,
+                )
+                    : null,
                 onChanged: (value) {
                   setState(() {
                     dealerId = value.id;
@@ -1056,7 +1026,7 @@ class _CreatePlanState extends State<CreatePlan> {
       default:return "Unknown";
     }
   }
-  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     final filteredEntries = visits
@@ -1559,458 +1529,305 @@ class _CreatePlanState extends State<CreatePlan> {
             //     ),
             //   ],
             // ),
-            ///
-            // Column(
-            //   children: [
-            //     //Start Date
-            //     TextField(
-            //       controller: _startDateController,
-            //       // EXPLANATION: MODIFIED CODE
-            //       // If a start date is passed as a parameter, the text field will be read-only.
-            //       readOnly: widget.startDate != null,
-            //       decoration: InputDecoration(
-            //         contentPadding: EdgeInsets.symmetric(
-            //           vertical: 16,
-            //           horizontal: 20,
-            //         ),
-            //         border: OutlineInputBorder(
-            //           borderSide: BorderSide(
-            //             color: Colors.black.withOpacity(0.42),
-            //             // Use withOpacity for clarity
-            //             width: 1.5,
-            //           ),
-            //         ),
-            //         focusedBorder: OutlineInputBorder(
-            //           borderSide: BorderSide(
-            //             color: Colors.black.withOpacity(0.42),
-            //             width: 2,
-            //           ),
-            //         ),
-            //         errorBorder: OutlineInputBorder(
-            //           borderSide: BorderSide(
-            //             color: Colors.red.withOpacity(0.6),
-            //             width: 2,
-            //           ),
-            //         ),
-            //         hintText: 'Select Date',
-            //         // Changed hint text
-            //         labelText: 'Start Date',
-            //         // Added a label for better UX
-            //         errorText: startDateError,
-            //         suffixIcon: Icon(Icons.calendar_today, color: Colors.black),
-            //       ),
-            //       // onTap: () async {
-            //       //   if (widget.startDate != null) return;
-            //       //
-            //       //   final ApiController apiController = Get.find<ApiController>();
-            //       //
-            //       //   if (apiController.tourPlanList.isEmpty) {
-            //       //     Get.snackbar(
-            //       //       "Info",
-            //       //       "No tour plans available to set date range.",
-            //       //       backgroundColor: Colors.blueAccent,
-            //       //       colorText: Colors.white,
-            //       //     );
-            //       //     return;
-            //       //   }
-            //       //
-            //       //   final TourPlan selectedTourPlan = apiController.tourPlanList.first;
-            //       //
-            //       //   DateTime firstPickableDate;
-            //       //   DateTime lastPickableDate = DateTime(2101);
-            //       //   DateTime initialDate;
-            //       //
-            //       //   try {
-            //       //     // 🔹 End date + 1 day
-            //       //     firstPickableDate =
-            //       //         DateTime.parse(selectedTourPlan.endDate).add(const Duration(days: 1));
-            //       //
-            //       //     initialDate = firstPickableDate;
-            //       //
-            //       //     if (_startDateController.text.isNotEmpty) {
-            //       //       DateTime parsed =
-            //       //       DateFormat('dd-MM-yyyy').parse(_startDateController.text);
-            //       //
-            //       //       if (parsed.isBefore(firstPickableDate)) {
-            //       //         initialDate = firstPickableDate;
-            //       //       } else if (parsed.isAfter(lastPickableDate)) {
-            //       //         initialDate = lastPickableDate;
-            //       //       } else {
-            //       //         initialDate = parsed;
-            //       //       }
-            //       //     }
-            //       //   } catch (e) {
-            //       //     firstPickableDate = DateTime.now();
-            //       //     initialDate = firstPickableDate;
-            //       //   }
-            //       //
-            //       //   DateTime? pickedDate = await showDatePicker(
-            //       //     context: context,
-            //       //     initialDate: initialDate,      // ✅ always valid
-            //       //     firstDate: firstPickableDate,  // ✅ SAME reference
-            //       //     lastDate: lastPickableDate,
-            //       //   );
-            //       //
-            //       //   if (pickedDate != null) {
-            //       //     _startDateController.text = DateFormat('dd-MM-yyyy').format(pickedDate);
-            //       //   }
-            //       // },
-            //       onTap: () async {
-            //         // EXPLANATION: MODIFIED CODE
-            //         // If a start date is passed as a parameter, the onTap function will not be executed.
-            //         if (widget.startDate != null) return;
-            //         final ApiController apiController = Get.find<ApiController>(); // Use Get.find for existing controller
-            //
-            //         // Ensure tourPlanList is not empty before trying to access elements
-            //         if (apiController.tourPlanList.isNotEmpty) {
-            //           // Get the first tour plan from the list for setting date range
-            //           // You might want to select a specific tour plan based on your logic
-            //           final TourPlan selectedTourPlan = apiController.tourPlanList.first;
-            //
-            //           // Parse the startDate and endDate from the TourPlan model
-            //           // Assuming startDate and endDate in TourPlan are in "yyyy-MM-dd" format
-            //           DateTime initialDate = DateTime.now();
-            //           DateTime firstPickableDate = DateTime.now(); // Default to today
-            //           DateTime lastPickableDate = DateTime(2101,); // Default to a far future date
-            //
-            //           try {
-            //             firstPickableDate = DateTime.parse(selectedTourPlan.endDate,);
-            //             //lastPickableDate = DateTime.parse(selectedTourPlan.endDate);
-            //
-            //             // Step 2: Set the first pickable date to ONE DAY AFTER the end date
-            //             firstPickableDate = firstPickableDate.add(Duration(days: 1));
-            //
-            //             // Set the initial date (initialDate) to the firstPickableDate
-            //             initialDate = firstPickableDate;
-            //             // Set initial date to current value in controller if valid, otherwise use firstPickableDate
-            //             if (_startDateController.text.isNotEmpty) {
-            //               try {
-            //                 initialDate = DateFormat('dd-MM-yyyy',).parse(_startDateController.text);
-            //               } catch (e) {
-            //                 initialDate = firstPickableDate; // Fallback if controller text is not in expected format
-            //               }
-            //             } else {
-            //               initialDate = firstPickableDate; // If controller is empty, start from the first pickable date
-            //             }
-            //
-            //             // Ensure initialDate is within the firstPickableDate and lastPickableDate range
-            //             if (initialDate.isBefore(firstPickableDate)) {
-            //               initialDate = firstPickableDate;
-            //             }
-            //             if (initialDate.isAfter(lastPickableDate)) {
-            //               initialDate = lastPickableDate;
-            //             }
-            //           } catch (e) {
-            //             print("Error parsing tour plan dates: $e");
-            //             // Fallback to default dates if parsing fails
-            //           }
-            //           DateTime? pickedDate = await showDatePicker(
-            //             context: context,
-            //             initialDate: initialDate,
-            //             ///firstDate: firstPickableDate,
-            //             firstDate:DateTime.now(),
-            //             lastDate: lastPickableDate,
-            //           );
-            //           if (pickedDate != null) {
-            //             _startDateController.text = "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
-            //           }
-            //         } else {
-            //           // Handle case where tourPlanList is empty
-            //           Get.snackbar(
-            //             "Info",
-            //             "No tour plans available to set date range.",
-            //             backgroundColor: Colors.blueAccent,
-            //             colorText: Colors.white,
-            //           );
-            //           // Optionally, allow selecting from a default range if no tour plans
-            //           DateTime? pickedDate = await showDatePicker(
-            //             context: context,
-            //             initialDate: DateTime.now(),
-            //             firstDate: DateTime.now(),
-            //             lastDate: DateTime(2101),
-            //           );
-            //           if (pickedDate != null) {
-            //             _startDateController.text = "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
-            //           }
-            //         }
-            //       },
-            //     ),
-            //     SizedBox(height: 30.0),
-            //     //End Date
-            //     TextField(
-            //       controller: _endDateController,
-            //       // EXPLANATION: MODIFIED CODE
-            //       // If an end date is passed as a parameter, the text field will be read-only.
-            //       readOnly: widget.endDate != null,
-            //       decoration: InputDecoration(
-            //         contentPadding: EdgeInsets.symmetric(
-            //           vertical: 16,
-            //           horizontal: 20,
-            //         ),
-            //         border: OutlineInputBorder(
-            //           borderSide: BorderSide(
-            //             color: Colors.black.withOpacity(0.42),
-            //             width: 1.5,
-            //           ),
-            //         ),
-            //         focusedBorder: OutlineInputBorder(
-            //           borderSide: BorderSide(
-            //             color: Colors.black.withOpacity(0.42),
-            //             width: 2,
-            //           ),
-            //         ),
-            //         errorBorder: OutlineInputBorder(
-            //           borderSide: BorderSide(
-            //             color: Colors.red.withOpacity(0.6),
-            //             width: 2,
-            //           ),
-            //         ),
-            //         hintText: 'End Date',
-            //         errorText: endDateError,
-            //         suffixIcon: Icon(
-            //           Icons.calendar_today,
-            //           color: Colors.black.withOpacity(0.6),
-            //         ),
-            //       ),
-            //       onTap: () async {
-            //         // EXPLANATION: MODIFIED CODE
-            //         // If an end date is passed as a parameter, the onTap function will not be executed.
-            //         if (widget.endDate != null) return;
-            //         final ApiController apiController = Get.find<ApiController>(); // Use Get.find for existing controller
-            //
-            //         // Ensure tourPlanList is not empty before trying to access elements
-            //         if (apiController.tourPlanList.isNotEmpty) {
-            //           // Get the first tour plan from the list for setting date range
-            //           // You might want to select a specific tour plan based on your logic
-            //           final TourPlan selectedTourPlan = apiController.tourPlanList.first;
-            //
-            //           // Parse the startDate and endDate from the TourPlan model
-            //           // Assuming startDate and endDate in TourPlan are in "yyyy-MM-dd" format
-            //           DateTime initialDate = DateTime.now();
-            //           DateTime tourEndDate = DateTime.now(); // Default to today
-            //           DateTime lastPickableDate = DateTime(2101,); // Default to a far future date
-            //
-            //           try {
-            //             tourEndDate = DateTime.parse(selectedTourPlan.endDate,);
-            //             //lastPickableDate = DateTime.parse(selectedTourPlan.endDate);
-            //
-            //             //Step 2: Set the first pickable date to ONE DAY AFTER the end date
-            //             tourEndDate = tourEndDate.add(Duration(days: 1));
-            //
-            //             // Set the initial date (initialDate) to the firstPickableDate
-            //             initialDate = tourEndDate;
-            //
-            //             // Set initial date to current value in controller if valid, otherwise use firstPickableDate
-            //             if (_endDateController.text.isNotEmpty) {
-            //               try {
-            //                 initialDate = DateFormat('dd-MM-yyyy',).parse(_endDateController.text);
-            //               } catch (e) {
-            //                 initialDate = tourEndDate; // Fallback if controller text is not in expected format
-            //               }
-            //             } else {
-            //               initialDate = tourEndDate; // If controller is empty, start from the first pickable date
-            //             }
-            //
-            //             // Ensure initialDate is within the firstPickableDate and lastPickableDate range
-            //             if (initialDate.isBefore(tourEndDate)) {
-            //               initialDate = tourEndDate;
-            //             }
-            //             if (initialDate.isAfter(lastPickableDate)) {
-            //               initialDate = lastPickableDate;
-            //             }
-            //           } catch (e) {
-            //             print("Error parsing tour plan dates: $e");
-            //             // Fallback to default dates if parsing fails
-            //           }
-            //
-            //           DateTime? pickedDate = await showDatePicker(
-            //             context: context,
-            //             initialDate: initialDate,
-            //             //firstDate: tourEndDate,
-            //             firstDate:DateTime.now(),
-            //             lastDate: lastPickableDate,
-            //           );
-            //
-            //           if (pickedDate != null) {
-            //             _endDateController.text = "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
-            //           }
-            //         } else {
-            //           print("No tour plans available to set date range.");
-            //           // Handle case where tourPlanList is empty
-            //           // Get.snackbar(
-            //           //   "Info",
-            //           //   "No tour plans available to set date range.",
-            //           //   backgroundColor: Colors.blueAccent,
-            //           //   colorText: Colors.white,
-            //           // );
-            //           // Optionally, allow selecting from a default range if no tour plans
-            //           DateTime? pickedDate = await showDatePicker(
-            //             context: context,
-            //             initialDate: DateTime.now(),
-            //             firstDate: DateTime.now(),
-            //             lastDate: DateTime(2101),
-            //           );
-            //           if (pickedDate != null) {
-            //             _endDateController.text =
-            //             "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
-            //           }
-            //         }
-            //       },
-            //     ),
-            //   ],
-            // ),
-            Form(
-              key: _formKey, // This key controls the "Next" button navigation
-              child: Column(
-                children: [
-                  // --- Start Date TextFormField ---
-                  TextFormField(
-                    controller: _startDateController,
-                    readOnly: widget.startDate != null,
-                    autovalidateMode: AutovalidateMode.onUserInteraction, // Shows error while typing
-                    keyboardType: TextInputType.datetime,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                      border: OutlineInputBorder(borderSide: BorderSide(color: Colors.black.withOpacity(0.42), width: 1.5)),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black.withOpacity(0.42), width: 2)),
-                      errorBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.red.withOpacity(0.6), width: 2)),
-                      hintText: 'dd-MM-yyyy',
-                      labelText: 'Start Date',
-                      errorMaxLines: 2, // Allows message to wrap if long
-                      suffixIcon: const Icon(Icons.calendar_today, color: Colors.black),
+            Column(
+              children: [
+                //Start Date
+                TextField(
+                  controller: _startDateController,
+                  // EXPLANATION: MODIFIED CODE
+                  // If a start date is passed as a parameter, the text field will be read-only.
+                  readOnly: widget.startDate != null,
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 20,
                     ),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black.withOpacity(0.42),
+                        // Use withOpacity for clarity
+                        width: 1.5,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black.withOpacity(0.42),
+                        width: 2,
+                      ),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.red.withOpacity(0.6),
+                        width: 2,
+                      ),
+                    ),
+                    hintText: 'Select Date',
+                    // Changed hint text
+                    labelText: 'Start Date',
+                    // Added a label for better UX
+                    errorText: startDateError,
+                    suffixIcon: Icon(Icons.calendar_today, color: Colors.black),
+                  ),
+                  // onTap: () async {
+                  //   if (widget.startDate != null) return;
+                  //
+                  //   final ApiController apiController = Get.find<ApiController>();
+                  //
+                  //   if (apiController.tourPlanList.isEmpty) {
+                  //     Get.snackbar(
+                  //       "Info",
+                  //       "No tour plans available to set date range.",
+                  //       backgroundColor: Colors.blueAccent,
+                  //       colorText: Colors.white,
+                  //     );
+                  //     return;
+                  //   }
+                  //
+                  //   final TourPlan selectedTourPlan = apiController.tourPlanList.first;
+                  //
+                  //   DateTime firstPickableDate;
+                  //   DateTime lastPickableDate = DateTime(2101);
+                  //   DateTime initialDate;
+                  //
+                  //   try {
+                  //     // 🔹 End date + 1 day
+                  //     firstPickableDate =
+                  //         DateTime.parse(selectedTourPlan.endDate).add(const Duration(days: 1));
+                  //
+                  //     initialDate = firstPickableDate;
+                  //
+                  //     if (_startDateController.text.isNotEmpty) {
+                  //       DateTime parsed =
+                  //       DateFormat('dd-MM-yyyy').parse(_startDateController.text);
+                  //
+                  //       if (parsed.isBefore(firstPickableDate)) {
+                  //         initialDate = firstPickableDate;
+                  //       } else if (parsed.isAfter(lastPickableDate)) {
+                  //         initialDate = lastPickableDate;
+                  //       } else {
+                  //         initialDate = parsed;
+                  //       }
+                  //     }
+                  //   } catch (e) {
+                  //     firstPickableDate = DateTime.now();
+                  //     initialDate = firstPickableDate;
+                  //   }
+                  //
+                  //   DateTime? pickedDate = await showDatePicker(
+                  //     context: context,
+                  //     initialDate: initialDate,      // ✅ always valid
+                  //     firstDate: firstPickableDate,  // ✅ SAME reference
+                  //     lastDate: lastPickableDate,
+                  //   );
+                  //
+                  //   if (pickedDate != null) {
+                  //     _startDateController.text = DateFormat('dd-MM-yyyy').format(pickedDate);
+                  //   }
+                  // },
+                  onTap: () async {
+                    // EXPLANATION: MODIFIED CODE
+                    // If a start date is passed as a parameter, the onTap function will not be executed.
+                    if (widget.startDate != null) return;
+                    final ApiController apiController = Get.find<ApiController>(); // Use Get.find for existing controller
 
-                    // --- VALIDATION LOGIC (ENGLISH MESSAGES) ---
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return "Please enter Start Date";
+                    // Ensure tourPlanList is not empty before trying to access elements
+                    if (apiController.tourPlanList.isNotEmpty) {
+                      // Get the first tour plan from the list for setting date range
+                      // You might want to select a specific tour plan based on your logic
+                      final TourPlan selectedTourPlan = apiController.tourPlanList.first;
+
+                      // Parse the startDate and endDate from the TourPlan model
+                      // Assuming startDate and endDate in TourPlan are in "yyyy-MM-dd" format
+                      DateTime initialDate = DateTime.now();
+                      DateTime firstPickableDate = DateTime.now(); // Default to today
+                      DateTime lastPickableDate = DateTime(2101,); // Default to a far future date
 
                       try {
-                        DateTime picked = DateFormat('dd-MM-yyyy').parseStrict(value);
-                        DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                        firstPickableDate = DateTime.parse(selectedTourPlan.endDate,);
+                        //lastPickableDate = DateTime.parse(selectedTourPlan.endDate);
 
-                        final ApiController apiController = Get.find<ApiController>();
+                        // Step 2: Set the first pickable date to ONE DAY AFTER the end date
+                        firstPickableDate = firstPickableDate.add(Duration(days: 1));
 
-                        // 1. Check against existing Tour Plan
-                        if (apiController.tourPlanList.isNotEmpty) {
-                          DateTime tourEndDate = DateTime.parse(apiController.tourPlanList.first.endDate);
-                          DateTime allowedDay = tourEndDate.add(const Duration(days: 1));
-
-                          if (picked.isBefore(DateTime(allowedDay.year, allowedDay.month, allowedDay.day))) {
-                            String formattedTourEnd = DateFormat('dd-MM-yyyy').format(tourEndDate);
-                            return "Tour already planned until $formattedTourEnd. Please select a later date.";
+                        // Set the initial date (initialDate) to the firstPickableDate
+                        initialDate = firstPickableDate;
+                        // Set initial date to current value in controller if valid, otherwise use firstPickableDate
+                        if (_startDateController.text.isNotEmpty) {
+                          try {
+                            initialDate = DateFormat('dd-MM-yyyy',).parse(_startDateController.text);
+                          } catch (e) {
+                            initialDate = firstPickableDate; // Fallback if controller text is not in expected format
                           }
+                        } else {
+                          initialDate = firstPickableDate; // If controller is empty, start from the first pickable date
                         }
 
-                        // 2. Check against Today's date
-                        if (picked.isBefore(today)) {
-                          return "Dates before today are not allowed.";
-                        }
-                      } catch (e) {
-                        return "Invalid format. Please use dd-MM-yyyy";
-                      }
-                      return null;
-                    },
-
-                    onTap: () async {
-                      if (widget.startDate != null) return;
-                      final ApiController apiController = Get.find<ApiController>();
-
-                      DateTime firstPickableDate = DateTime.now();
-                      if (apiController.tourPlanList.isNotEmpty) {
-                        DateTime tourEndDate = DateTime.parse(apiController.tourPlanList.first.endDate);
-                        firstPickableDate = tourEndDate.add(const Duration(days: 1));
-                        if (firstPickableDate.isBefore(DateTime.now())) firstPickableDate = DateTime.now();
-                      }
-
-                      DateTime initialDate = firstPickableDate;
-                      if (_startDateController.text.isNotEmpty) {
-                        try {
-                          initialDate = DateFormat('dd-MM-yyyy').parse(_startDateController.text);
-                          if (initialDate.isBefore(firstPickableDate)) initialDate = firstPickableDate;
-                        } catch (e) {
+                        // Ensure initialDate is within the firstPickableDate and lastPickableDate range
+                        if (initialDate.isBefore(firstPickableDate)) {
                           initialDate = firstPickableDate;
                         }
+                        if (initialDate.isAfter(lastPickableDate)) {
+                          initialDate = lastPickableDate;
+                        }
+                      } catch (e) {
+                        print("Error parsing tour plan dates: $e");
+                        // Fallback to default dates if parsing fails
+                      }
+                      DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: initialDate,
+                        ///firstDate: firstPickableDate,
+                        firstDate:DateTime.now(),
+                        lastDate: lastPickableDate,
+                      );
+                      if (pickedDate != null) {
+                        _startDateController.text = "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
+                      }
+                    } else {
+                      // Handle case where tourPlanList is empty
+                      Get.snackbar(
+                        "Info",
+                        "No tour plans available to set date range.",
+                        backgroundColor: Colors.blueAccent,
+                        colorText: Colors.white,
+                      );
+                      // Optionally, allow selecting from a default range if no tour plans
+                      DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2101),
+                      );
+                      if (pickedDate != null) {
+                        _startDateController.text = "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
+                      }
+                    }
+                  },
+                ),
+                SizedBox(height: 30.0),
+                //End Date
+                TextField(
+                  controller: _endDateController,
+                  // EXPLANATION: MODIFIED CODE
+                  // If an end date is passed as a parameter, the text field will be read-only.
+                  readOnly: widget.endDate != null,
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 20,
+                    ),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black.withOpacity(0.42),
+                        width: 1.5,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black.withOpacity(0.42),
+                        width: 2,
+                      ),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.red.withOpacity(0.6),
+                        width: 2,
+                      ),
+                    ),
+                    hintText: 'End Date',
+                    errorText: endDateError,
+                    suffixIcon: Icon(
+                      Icons.calendar_today,
+                      color: Colors.black.withOpacity(0.6),
+                    ),
+                  ),
+                  onTap: () async {
+                    // EXPLANATION: MODIFIED CODE
+                    // If an end date is passed as a parameter, the onTap function will not be executed.
+                    if (widget.endDate != null) return;
+                    final ApiController apiController = Get.find<ApiController>(); // Use Get.find for existing controller
+
+                    // Ensure tourPlanList is not empty before trying to access elements
+                    if (apiController.tourPlanList.isNotEmpty) {
+                      // Get the first tour plan from the list for setting date range
+                      // You might want to select a specific tour plan based on your logic
+                      final TourPlan selectedTourPlan = apiController.tourPlanList.first;
+
+                      // Parse the startDate and endDate from the TourPlan model
+                      // Assuming startDate and endDate in TourPlan are in "yyyy-MM-dd" format
+                      DateTime initialDate = DateTime.now();
+                      DateTime tourEndDate = DateTime.now(); // Default to today
+                      DateTime lastPickableDate = DateTime(2101,); // Default to a far future date
+
+                      try {
+                        tourEndDate = DateTime.parse(selectedTourPlan.endDate,);
+                        //lastPickableDate = DateTime.parse(selectedTourPlan.endDate);
+
+                        //Step 2: Set the first pickable date to ONE DAY AFTER the end date
+                        tourEndDate = tourEndDate.add(Duration(days: 1));
+
+                        // Set the initial date (initialDate) to the firstPickableDate
+                        initialDate = tourEndDate;
+
+                        // Set initial date to current value in controller if valid, otherwise use firstPickableDate
+                        if (_endDateController.text.isNotEmpty) {
+                          try {
+                            initialDate = DateFormat('dd-MM-yyyy',).parse(_endDateController.text);
+                          } catch (e) {
+                            initialDate = tourEndDate; // Fallback if controller text is not in expected format
+                          }
+                        } else {
+                          initialDate = tourEndDate; // If controller is empty, start from the first pickable date
+                        }
+
+                        // Ensure initialDate is within the firstPickableDate and lastPickableDate range
+                        if (initialDate.isBefore(tourEndDate)) {
+                          initialDate = tourEndDate;
+                        }
+                        if (initialDate.isAfter(lastPickableDate)) {
+                          initialDate = lastPickableDate;
+                        }
+                      } catch (e) {
+                        print("Error parsing tour plan dates: $e");
+                        // Fallback to default dates if parsing fails
                       }
 
                       DateTime? pickedDate = await showDatePicker(
                         context: context,
                         initialDate: initialDate,
-                        firstDate: DateTime.now(), // Restricts selection to today onwards
-                        lastDate: DateTime(2101),
+                        //firstDate: tourEndDate,
+                        firstDate:DateTime.now(),
+                        lastDate: lastPickableDate,
                       );
 
                       if (pickedDate != null) {
-                        _startDateController.text = DateFormat('dd-MM-yyyy').format(pickedDate);
+                        _endDateController.text = "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
                       }
-                    },
-                  ),
-
-                  const SizedBox(height: 30.0),
-
-                  // --- End Date TextFormField ---
-                  TextFormField(
-                    controller: _endDateController,
-                    readOnly: widget.endDate != null,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    keyboardType: TextInputType.datetime,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                      border: OutlineInputBorder(borderSide: BorderSide(color: Colors.black.withOpacity(0.42), width: 1.5)),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black.withOpacity(0.42), width: 2)),
-                      errorBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.red.withOpacity(0.6), width: 2)),
-                      hintText: 'dd-MM-yyyy',
-                      labelText: 'End Date',
-                      errorMaxLines: 2,
-                      suffixIcon: Icon(Icons.calendar_today, color: Colors.black.withOpacity(0.6)),
-                    ),
-
-                    // --- END DATE VALIDATOR ---
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return "Please enter End Date";
-                      try {
-                        DateTime picked = DateFormat('dd-MM-yyyy').parseStrict(value);
-                        DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-
-                        if (picked.isBefore(today)) return "Dates before today are not allowed.";
-
-                        if (_startDateController.text.isNotEmpty) {
-                          DateTime start = DateFormat('dd-MM-yyyy').parseStrict(_startDateController.text);
-                          if (picked.isBefore(start)) {
-                            return "End date cannot be before Start date.";
-                          }
-                        }
-                      } catch (e) {
-                        return "Invalid format. Please use dd-MM-yyyy";
-                      }
-                      return null;
-                    },
-
-                    onTap: () async {
-                      if (widget.endDate != null) return;
-
-                      DateTime minDate = DateTime.now();
-                      if (_startDateController.text.isNotEmpty) {
-                        try {
-                          minDate = DateFormat('dd-MM-yyyy').parse(_startDateController.text);
-                        } catch (e) {}
-                      }
-
+                    } else {
+                      print("No tour plans available to set date range.");
+                      // Handle case where tourPlanList is empty
+                      // Get.snackbar(
+                      //   "Info",
+                      //   "No tour plans available to set date range.",
+                      //   backgroundColor: Colors.blueAccent,
+                      //   colorText: Colors.white,
+                      // );
+                      // Optionally, allow selecting from a default range if no tour plans
                       DateTime? pickedDate = await showDatePicker(
                         context: context,
-                        initialDate: minDate.isBefore(DateTime.now()) ? DateTime.now() : minDate,
+                        initialDate: DateTime.now(),
                         firstDate: DateTime.now(),
                         lastDate: DateTime(2101),
                       );
-
                       if (pickedDate != null) {
-                        _endDateController.text = DateFormat('dd-MM-yyyy').format(pickedDate);
+                        _endDateController.text =
+                        "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
                       }
-                    },
-                  ),
-                ],
-              ),
+                    }
+                  },
+                ),
+              ],
             ),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2089,7 +1906,6 @@ class _CreatePlanState extends State<CreatePlan> {
                   Text(optionError, style: TextStyle(color: Colors.red)),
               ],
             ),
-
             Column(
               children: [
                 Column(
@@ -2181,7 +1997,8 @@ class _CreatePlanState extends State<CreatePlan> {
                             _visitDateController.text.isNotEmpty
                                 ? DateFormat(
                               'dd-MM-yyyy',
-                            ).parse(_visitDateController.text) : DateFormat(
+                            ).parse(_visitDateController.text)
+                                : DateFormat(
                               'dd-MM-yyyy',
                             ).parse(_startDateController.text),
 
@@ -2320,7 +2137,8 @@ class _CreatePlanState extends State<CreatePlan> {
                                                     onChanged: (value) {
                                                       setState(() {
                                                         warehouseId = value.id;
-                                                        selectedWarehouse = value.name;
+                                                        selectedWarehouse =
+                                                            value.name;
                                                       });
                                                     },
                                                   ),
@@ -2339,7 +2157,8 @@ class _CreatePlanState extends State<CreatePlan> {
                                                     hint: Text("Select Service"),
                                                     decoration: _dropdownDecoration('Select Service',),
                                                     dropdownColor: Colors.white,
-                                                    items: [
+                                                    items:
+                                                    [
                                                       'Service/Repair/Assembly',
                                                       'Spare Parts Order Colletion',
                                                     ].map((item) {
@@ -2385,7 +2204,8 @@ class _CreatePlanState extends State<CreatePlan> {
                                                     hint: Text("Select Activity"),
                                                     decoration: _dropdownDecoration('Select Activity',),
                                                     dropdownColor: Colors.white,
-                                                    items: [
+                                                    items:
+                                                    [
                                                       'Sales-Marketing',
                                                       'Service',
                                                       'Others',
@@ -2453,7 +2273,9 @@ class _CreatePlanState extends State<CreatePlan> {
                                                   ),
                                                 },
 
-                                                if (selectedValue == 'Others' && selectedOthers != null && selectedOthers == 'Others') ...{
+                                                if (selectedValue == 'Others' &&
+                                                    selectedOthers != null &&
+                                                    selectedOthers == 'Others') ...{
                                                   const SizedBox(height: 15),
                                                   TextField(
                                                     controller: _purposeController,
@@ -2480,142 +2302,11 @@ class _CreatePlanState extends State<CreatePlan> {
                                                 if (selectedValue == 'New lead')
                                                   newLead(context, setState),
                                                 if (selectedValue == 'FollowUp Leads')followLeads(context),
-                                                SizedBox(height: 15),
-                                                // Location: Line 865 approx.
+                                                //SizedBox(height: 15),
                                                 Align(
                                                   alignment: Alignment.center,
                                                   child: ElevatedButton(
                                                     onPressed: () {
-                                                      // --- VALIDATION LOGIC START ---
-                                                      bool isFormValid = false;
-                                                      String errorMessage = ""; // Empty rakha hai taaki niche set ho sake
-
-                                                      if (selectedValue == 'Dealer') {
-                                                        if (dealerId != null && _purposeController.text.trim().isNotEmpty) {
-                                                          isFormValid = true;
-                                                        } else {
-                                                          errorMessage = "Please select a Dealer and enter Purpose";
-                                                        }
-                                                      }
-                                                      else if (selectedValue == 'Department') {
-                                                        if (_departmentController.text.trim().isNotEmpty && _purposeController.text.trim().isNotEmpty) {
-                                                          isFormValid = true;
-                                                        } else {
-                                                          errorMessage = "Please fill Department Name and Purpose";
-                                                        }
-                                                      }
-                                                      else if (selectedValue == 'Warehouse/Branch') {
-                                                        if (warehouseId != null && _purposeController.text.trim().isNotEmpty) {
-                                                          isFormValid = true;
-                                                        } else {
-                                                          errorMessage = "Please select warehouse branch name and purpose";
-                                                        }
-                                                      }
-                                                      else if (selectedValue == 'Transit') {
-                                                        if (_transitController.text.trim().isNotEmpty && _purposeController.text.trim().isNotEmpty) {
-                                                          isFormValid = true;
-                                                        } else {
-                                                          errorMessage = "Please fill Transit details and Purpose";
-                                                        }
-                                                      }
-                                                      else if (selectedValue == 'Service') {
-                                                        if (selectedService == null) {
-                                                          errorMessage = "Please select a Service type";
-                                                        }
-                                                        // Case 1: Service/Repair ke liye sirf Purpose chahiye
-                                                        else if (selectedService == 'Service/Repair/Assembly') {
-                                                          if (_purposeController.text.trim().isNotEmpty) {
-                                                            isFormValid = true;
-                                                          } else {
-                                                            errorMessage = "Please enter Purpose for Service/Repair";
-                                                          }
-                                                        }
-                                                        // Case 2: Spare Parts ke liye Dealer select hona chahiye
-                                                        else if (selectedService == 'Spare Parts Order Colletion') {
-                                                          if (dealerId != null) {
-                                                            isFormValid = true;
-                                                          } else {
-                                                            errorMessage = "Please select a Dealer for Spare Parts";
-                                                          }
-                                                        }
-                                                      }
-
-                                                      // else if (selectedValue == 'Service') {
-                                                      //   if (selectedService != null && _purposeController.text.trim().isNotEmpty) {
-                                                      //     isFormValid = true;
-                                                      //   } else {
-                                                      //     errorMessage = "Please select Service type and enter Purpose";
-                                                      //   }
-                                                      // }
-                                                      else if (selectedValue == 'Activity') {
-                                                        if (selectedActivity != null && _purposeController.text.trim().isNotEmpty) {
-                                                          isFormValid = true;
-                                                        } else {
-                                                          errorMessage = "Please select Activity and enter Purpose";
-                                                        }
-                                                      }
-                                                      else if (selectedValue == 'New lead') {
-                                                        if (_leadNameController.text.isNotEmpty && _phoneController.text.isNotEmpty) {
-                                                          isFormValid = true;
-                                                        } else {
-                                                          errorMessage = "Please enter lead name and all required fields";
-                                                        }
-                                                      }
-                                                      else if (selectedValue == 'FollowUp Leads') {
-                                                        if (followLeadVisit != null) {
-                                                          isFormValid = true;
-                                                        } else {
-                                                          errorMessage = "Please select a Lead for follow-up";
-                                                        }
-                                                      }
-                                                      else if (selectedValue == 'Others') {
-                                                        if (selectedOthers == null) {
-                                                          errorMessage = "Please select Others type";
-                                                        }
-                                                        // Case 1: Dealer Visit ke liye Dealer selection zaroori hai
-                                                        else if (selectedOthers == 'Dealer Visit') {
-                                                          if (dealerId != null) {
-                                                            isFormValid = true;
-                                                          } else {
-                                                            errorMessage = "Please select a Dealer";
-                                                          }
-                                                        }
-                                                        // Case 2: 'Others' sub-type ke liye Purpose zaroori hai
-                                                        else if (selectedOthers == 'Others') {
-                                                          if (_purposeController.text.trim().isNotEmpty) {
-                                                            isFormValid = true;
-                                                          } else {
-                                                            errorMessage = "Please enter purpose of visit";
-                                                          }
-                                                        }
-                                                      }
-                                                      else if (selectedValue == 'HO') {
-                                                        // if (_purposeController.text.trim().isNotEmpty) {
-                                                        //   isFormValid = true;
-                                                        // } else {
-                                                        //   errorMessage = "Please enter the Purpose of your visit";
-                                                        // }
-                                                      }
-                                                      else {
-                                                        // Agar koi category select nahi ki
-                                                        errorMessage = "Please select a visit type and fill all fields";
-                                                      }
-
-                                                      // Check if valid
-                                                      if (!isFormValid) {
-                                                        Get.snackbar(
-                                                            "Message",
-                                                            errorMessage,
-                                                            backgroundColor: Colors.red,
-                                                            colorText: Colors.white,
-                                                            snackPosition: SnackPosition.TOP,
-                                                            margin: EdgeInsets.all(10),
-                                                            duration: Duration(seconds: 2)
-                                                        );
-                                                        return; // Validation fails, exit
-                                                      }
-                                                      // --- VALIDATION LOGIC END ---
-
                                                       setState(() {
                                                         addVisitData();
                                                       });
@@ -2623,9 +2314,12 @@ class _CreatePlanState extends State<CreatePlan> {
                                                       Navigator.pop(context);
                                                     },
                                                     style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.black,
-                                                      foregroundColor: Colors.white,
-                                                      padding: const EdgeInsets.symmetric(
+                                                      backgroundColor:
+                                                      Colors.black,
+                                                      foregroundColor:
+                                                      Colors.white,
+                                                      padding:
+                                                      const EdgeInsets.symmetric(
                                                         vertical: 15,
                                                         horizontal: 20,
                                                       ),
@@ -2633,30 +2327,6 @@ class _CreatePlanState extends State<CreatePlan> {
                                                     child: const Text("Save"),
                                                   ),
                                                 ),
-                                                // Align(
-                                                //   alignment: Alignment.center,
-                                                //   child: ElevatedButton(
-                                                //     onPressed: () {
-                                                //       setState(() {
-                                                //         addVisitData();
-                                                //       });
-                                                //       _clearForm();
-                                                //       Navigator.pop(context);
-                                                //     },
-                                                //     style: ElevatedButton.styleFrom(
-                                                //       backgroundColor:
-                                                //       Colors.black,
-                                                //       foregroundColor:
-                                                //       Colors.white,
-                                                //       padding:
-                                                //       const EdgeInsets.symmetric(
-                                                //         vertical: 15,
-                                                //         horizontal: 20,
-                                                //       ),
-                                                //     ),
-                                                //     child: const Text("Save"),
-                                                //   ),
-                                                // ),
                                                 const SizedBox(height: 25),
                                               ],
                                             ),
@@ -2699,98 +2369,39 @@ class _CreatePlanState extends State<CreatePlan> {
                     ),
                   ),
                 ],
+                // ============ Follow Leads =======================
+                // if (selectedValue == 'FollowUp Leads')
+                // ===================== NEW LEAD =====================
+                // if (selectedValue == 'New lead')
               ],
             ),
           ],
           currentStep: _currentStep,
-          // onStepContinue: () {
-          //   setState(() {
-          //     if (_currentStep < 2) {
-          //       if ((selectedValue == null || selectedValue!.isEmpty) && _currentStep == 1) {
-          //          Get.snackbar(
-          //             "Message", "Please select a visit type (Dealer, Lead, etc.)",
-          //             //"Message", "Please select any visits option",
-          //             backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP
-          //         );
-          //         return;
-          //       } else if (_startDateController.text.isEmpty || _endDateController.text.isEmpty) {
-          //         if (_startDateController.text.isEmpty) {
-          //            Get.snackbar(
-          //               "Message", "Please select start date & end date",
-          //               backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP
-          //           );
-          //         }
-          //         if (_endDateController.text.isEmpty) {
-          //           // Get.snackbar(
-          //           //     "Message", "Please select end date",
-          //           //     backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP
-          //           // );
-          //          }
-          //       } else {
-          //         startDateError = null;
-          //         endDateError = null;
-          //         optionError = '';
-          //         _currentStep++;
-          //       }
-          //       optionError = '';
-
           onStepContinue: () {
             setState(() {
-              // --- Step 0: Date Validation ---
-              if (_currentStep == 0) {
-                if (_startDateController.text.isEmpty || _endDateController.text.isEmpty) {
-                  Get.snackbar(
-                      "Message", "Please select start date & end date",
-                      backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP
-                  );
-                  return;
-                }
-                _currentStep++;
-              }
-              // --- Step 1: Category Validation ---
-              else if (_currentStep == 1) {
-                if (selectedValue == null || selectedValue!.isEmpty) {
+              if (_currentStep < 2) {
+                if ((selectedValue == null || selectedValue!.isEmpty) && _currentStep == 1) {
                   optionError = 'Please select an option';
-                  Get.snackbar("Message", "Please select a visit type (Dealer, Lead, etc.)",
-                      backgroundColor: Colors.red, colorText: Colors.white);
                   return;
+                } else if (_startDateController.text.isEmpty ||
+                    _endDateController.text.isEmpty) {
+                  if (_startDateController.text.isEmpty) {
+                    startDateError = 'Please select start date';
+                  }
+
+                  if (_endDateController.text.isEmpty) {
+                    endDateError = 'Please select end date';
+                  }
+                } else {
+                  startDateError = null;
+                  endDateError = null;
+                  optionError = '';
+                  _currentStep++;
                 }
                 optionError = '';
-                _currentStep++;
-              }
-              // --- Step 2: Final Step & BottomSheet ---
-              else if (_currentStep == 2) {
-                // Logic: Pehle check karo visit add hui hai ya nahi
-                final currentDayVisits = visits.where((v) => v['visit_date'] == _visitDateController.text).toList();
-                // YAHAN CHANGE KIYA HAI:
-                // Agar selectedValue 'HO' nahi hai, tabhi ye validation check karega.
-                // Agar 'HO' hai, toh ye block skip ho jayega.
-                if (selectedValue == 'HO') {
-                  if (_visitDateController.text.trim().isEmpty) {
-                    Get.snackbar(
-                        "Message",
-                        "Please select the HO visit date",
-                        backgroundColor: Colors.red,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP
-                    );
-                    return; // Stop here if Purpose is empty
-                  }
-                } else{
-                  if (currentDayVisits.isEmpty || (currentDayVisits[0]['data'] as List).isEmpty) {
-                    // Agar visit add nahi ki, toh alert dikhao
-                    Get.defaultDialog(
-                      backgroundColor: Colors.white,
-                      title: "Visit Message",
-                      middleText: "Please click the '+ Add' button to add visit details before clicking Next Button.",
-                      textConfirm: "OK",
-                      confirmTextColor: Colors.white,
-                      buttonColor: Colors.black,
-                      onConfirm: () => Get.back(),
-                    );
-                    return; // Validation failed, stop here
-                  }
-                }
+              } else {
+                // 7439000924 if (selectedValue != 'FollowUp Leads' &&
+                //     selectedValue != 'New lead') {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -2875,22 +2486,117 @@ class _CreatePlanState extends State<CreatePlan> {
                                     ),
                                   ],
                                 ),
-                                ///final button in create tour plan
+                                ///ye code finash ke time ka hai desing hai
+                                // Row(
+                                //   children: [
+                                //     Expanded(
+                                //       child: GestureDetector(
+                                //         onTap: () {
+                                //           setState(() {
+                                //             selectedButton = 0;
+                                //           });
+                                //         },
+                                //         child: Container(
+                                //           height: 140,
+                                //           decoration: BoxDecoration(
+                                //             // color: Colors.grey.withOpacity(
+                                //             //   alpha: 0.1,
+                                //             // ),
+                                //             color: Colors.grey,
+                                //             border: Border.all(
+                                //               color:
+                                //                   selectedButton == 0
+                                //                       ? Colors.black
+                                //                       : Colors.transparent,
+                                //               width: 2,
+                                //             ),
+                                //             borderRadius: BorderRadius.circular(
+                                //               8,
+                                //             ),
+                                //           ),
+                                //           child: Column(
+                                //             mainAxisAlignment: MainAxisAlignment.center,
+                                //             children: const [
+                                //               Icon(
+                                //                 Ionicons.calendar_outline,
+                                //                 size: 28,
+                                //                 color: Colors.black,
+                                //               ),
+                                //               SizedBox(height: 8),
+                                //               Text(
+                                //                 "Add Visit",
+                                //                 style: TextStyle(fontSize: 14),
+                                //               ),
+                                //             ],
+                                //           ),
+                                //         ),
+                                //       ),
+                                //     ),
+                                //     const SizedBox(width: 10),
+                                //     Obx(() {
+                                //       return Expanded(
+                                //         child: GestureDetector(
+                                //           onTap: () {
+                                //             setState(() {
+                                //               selectedButton = 1;
+                                //             });
+                                //           },
+                                //           child: Container(
+                                //             height: 140,
+                                //             decoration: BoxDecoration(
+                                //               // color: Colors.grey.withOpacity(
+                                //               //   alpha: 0.1,
+                                //               // ),
+                                //               color: Colors.green,
+                                //               border: Border.all(
+                                //                 color: selectedButton == 1
+                                //                         ? Colors.black
+                                //                         : Colors.transparent,
+                                //                 width: 2,
+                                //               ),
+                                //               borderRadius: BorderRadius.circular(
+                                //                 8,
+                                //               ),
+                                //             ),
+                                //             child: Column(
+                                //               mainAxisAlignment:
+                                //                   MainAxisAlignment.center,
+                                //               children: [
+                                //                 const Icon(
+                                //                   Ionicons.paper_plane_outline,
+                                //                   size: 28,
+                                //                   color: Colors.black,
+                                //                 ),
+                                //                 const SizedBox(height: 8),
+                                //                 tourPlanController.isLoading.value
+                                //                     ? CircularProgressIndicator(
+                                //                       color: Colors.white,
+                                //                     )
+                                //                     : const Text(
+                                //                       "End Plan",
+                                //                       style: TextStyle(
+                                //                         fontSize: 14,
+                                //                       ),
+                                //                     ),
+                                //               ],
+                                //             ),
+                                //           ),
+                                //         ),
+                                //       );
+                                //     }),
+                                //   ],
+                                // ),
+                                //const SizedBox(height: 30),
                                 Align(
                                   alignment: Alignment.center,
                                   child: ElevatedButton(
-                                    onPressed: isLoading
-                                        ? null // ❌ disable button while loading
-                                        : () async {
+                                    onPressed: () async {
                                       if (selectedButton == null) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(content: Text("Please select an option")),
                                         );
                                         return;
                                       }
-                                      setState(() {
-                                        isLoading = true; // 🔄 start loader
-                                      });
 
                                       try {
                                         if (selectedButton == 0) {
@@ -2898,7 +2604,7 @@ class _CreatePlanState extends State<CreatePlan> {
                                           Navigator.pop(context);
                                         } else {
                                           // ✅ Always add current visit before saving
-                                          //addVisitData(); <--- Is line ko DELETE kar dein ya COMMENT kar dein
+                                          addVisitData();
 
                                           if (widget.tourid != null) {
                                             await tourPlanController.updateTourPlan(
@@ -2920,78 +2626,96 @@ class _CreatePlanState extends State<CreatePlan> {
                                           SnackBar(content: Text("Error: $e")),
                                         );
                                       }
-                                      finally {
-                                        setState(() {
-                                          isLoading = false; // ✅ stop loader
-                                        });
-                                      }
                                     },
+
+                                    // onPressed: () async {
+                                    //   if (selectedButton == null) {
+                                    //     ScaffoldMessenger.of(context).showSnackBar(
+                                    //       const SnackBar(content: Text("Please select an option")),
+                                    //     );
+                                    //     return;
+                                    //   }
+                                    //   try {
+                                    //     if (selectedButton == 0) {
+                                    //       // Existing behavior
+                                    //       addVisitData(isNextVisit: true);
+                                    //       Navigator.pop(context);
+                                    //     } else {
+                                    //       if (widget.tourid != null) {
+                                    //         //Update existing tour plan
+                                    //         await tourPlanController.updateTourPlan(
+                                    //           //context: context,
+                                    //           tourPlanId: widget.tourid!,
+                                    //           startDate: _startDateController.text,
+                                    //           endDate: _endDateController.text,
+                                    //           visits: visits,
+                                    //         );
+                                    //         //Navigator.pop(context);
+                                    //       } else {
+                                    //         //Create new tour plan
+                                    //         await tourPlanController.addNewVisits(
+                                    //           startDate: _startDateController.text,
+                                    //           endDate: _endDateController.text,
+                                    //           visits: visits,
+                                    //         );
+                                    //         //Navigator.pop(context);
+                                    //       }
+                                    //     }
+                                    //   } catch (e) {
+                                    //     ScaffoldMessenger.of(context).showSnackBar(
+                                    //       SnackBar(content: Text("Error: $e")),
+                                    //     );
+                                    //   }
+                                    // },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.black,
                                       foregroundColor: Colors.white,
-                                      minimumSize: const Size(120, 45),
+                                      //padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                                     ),
-                                    child: isLoading
-                                        ? const SizedBox(
-                                      height: 22,
-                                      width: 22,
-                                      child: MultiColorCircularLoader()
-                                    ) : Text((widget.tourid != null) ? "Update" : "Save"),
+                                    child: Text((widget.tourid != null) ? "Update" : "Save"),
                                   ),
                                 ),
-
-                                ///ye bhi code sahi hai dono code same hi hai uper wala or
-                                ///yek shirf uper wale me progress bar hai es me nahi
                                 // Align(
-                                //   alignment: Alignment.center,
+                                //   alignment: Alignment.bottomRight,
                                 //   child: ElevatedButton(
                                 //     onPressed: () async {
                                 //       if (selectedButton == null) {
-                                //         ScaffoldMessenger.of(context).showSnackBar(
-                                //           const SnackBar(content: Text("Please select an option")),
+                                //         ScaffoldMessenger.of(
+                                //           context,
+                                //         ).showSnackBar(
+                                //           const SnackBar(
+                                //             content: Text(
+                                //               "Please select an option",
+                                //             ),
+                                //           ),
                                 //         );
                                 //         return;
                                 //       }
-                                //
-                                //       setState(() {
-                                //         isLoading = true; // 🔄 start loader
-                                //       });
-                                //
-                                //       try {
-                                //         if (selectedButton == 0) {
-                                //           addVisitData(isNextVisit: true);
-                                //           Navigator.pop(context);
-                                //         } else {
-                                //           // ✅ Always add current visit before saving
-                                //           addVisitData();
-                                //
-                                //           if (widget.tourid != null) {
-                                //             await tourPlanController.updateTourPlan(
-                                //               tourPlanId: widget.tourid!,
-                                //               startDate: _startDateController.text,
-                                //               endDate: _endDateController.text,
-                                //               visits: visits,
-                                //             );
-                                //           } else {
-                                //             await tourPlanController.addNewVisits(
-                                //               startDate: _startDateController.text,
-                                //               endDate: _endDateController.text,
-                                //               visits: visits,
-                                //             );
-                                //           }
-                                //         }
-                                //       } catch (e) {
-                                //         ScaffoldMessenger.of(context).showSnackBar(
-                                //           SnackBar(content: Text("Error: $e")),
+                                //       if (selectedButton == 0) {
+                                //         addVisitData(isNextVisit: true);
+                                //         Navigator.pop(context);
+                                //         // print("visits : ${visits.toString()}");
+                                //       } else {
+                                //         // if (selectedValue == 'New lead' &&
+                                //         //     selectedValue == 'FollowUp Leads') {
+                                //         //   addVisitData();
+                                //         // }
+                                //         await tourPlanController.addNewVisits(
+                                //           startDate: _startDateController.text,
+                                //           endDate: _endDateController.text,
+                                //           visits: visits,
                                 //         );
                                 //       }
                                 //     },
                                 //     style: ElevatedButton.styleFrom(
                                 //       backgroundColor: Colors.black,
                                 //       foregroundColor: Colors.white,
-                                //       //padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                                //       padding: const EdgeInsets.symmetric(
+                                //         vertical: 15,
+                                //         horizontal: 20,
+                                //       ),
                                 //     ),
-                                //     child: Text((widget.tourid != null) ? "Update" : "Save"),
+                                //     child: const Text("Save"),
                                 //   ),
                                 // ),
                                 const SizedBox(height: 20),
@@ -3068,7 +2792,7 @@ class _CreatePlanState extends State<CreatePlan> {
                           "Dealer Name: ${entryValue['dealerName']}",
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
-                        SizedBox(height: 7),
+                        SizedBox(height: 15),
                       },
                     },
                     if (entryValue['type'] == 'new_lead') ...{
@@ -3076,84 +2800,56 @@ class _CreatePlanState extends State<CreatePlan> {
                         "Phone no: ${entryValue['primary_no']}",
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
-                      SizedBox(height: 7,),
+                      SizedBox(height: 15,),
                       Text(
                         "Contact Person: ${entryValue['contact_person']}",
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
-                      SizedBox(height: 7),
+                      SizedBox(height: 15),
                       Text(
                         "State: ${entryValue['state']}",
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
-                      SizedBox(height: 7),
+                      SizedBox(height: 15),
                       Text(
                         "City: ${entryValue['city']}",
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
-                      SizedBox(height: 7),
-                      Text(
-                        "Pincode: ${entryValue['pin_code']}",
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      SizedBox(height: 7),
+                      SizedBox(height: 15),
                       Text(
                         "Address: ${entryValue['address']}",
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
-                      SizedBox(height: 7),
+                      SizedBox(height: 15),
                       Text(
                         "Lead Type: ${entryValue['lead_type']}",
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
-                      SizedBox(height: 7),
+                      SizedBox(height: 15),
                       Text(
                         "Lead Source: ${entryValue['lead_source']}",
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     },
-                    // if (entryValue['type'] == 'followup_lead') ...{
-                    //   Text(
-                    //     "Previous Visit Date: ${
-                    //         DateFormat('dd-MM-yyyy').format(
-                    //             DateTime.parse(
-                    //                 apiController.leads.firstWhere((ld) => ld.id ==
-                    //                     entryValue['visit_id']).visitDate
-                    //             )
-                    //         )
-                    //     }",
-                    //     style: const TextStyle(fontWeight: FontWeight.w500),
-                    //   ),
-                    //   SizedBox(height: 15),
-                    //   Text(
-                    //     "Lead Name: ${apiController.leads.firstWhere((ld) => ld.id == entryValue['visit_id']).name}",
-                    //     style: const TextStyle(fontWeight: FontWeight.w500),
-                    //   ),
-                    // },
                     if (entryValue['type'] == 'followup_lead') ...{
-                      Builder(
-                        builder: (context) {
-                          // .firstWhere ko .firstOrNull mein badla gaya hai taaki crash na ho
-                          final lead = apiController.leads.firstWhereOrNull((ld) => ld.id == entryValue['visit_id']);
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Previous Visit Date: ${lead != null ? DateFormat('dd-MM-yyyy').format(DateTime.parse(lead.visitDate)) : 'N/A'}",
-                                style: const TextStyle(fontWeight: FontWeight.w500),
-                              ),
-                              const SizedBox(height: 7),
-                              Text(
-                                "Lead Name: ${lead != null ? lead.name : 'Unknown'}",
-                                style: const TextStyle(fontWeight: FontWeight.w500),
-                              ),
-                            ],
-                          );
-                        },
+                      Text(
+                        "Previous Visit Date: ${
+                            DateFormat('dd-MM-yyyy').format(
+                                DateTime.parse(
+                                    apiController.leads.firstWhere((ld) => ld.id ==
+                                        entryValue['visit_id']).visitDate
+                                )
+                            )
+                        }",
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(height: 15),
+                      Text(
+                        "Lead Name: ${apiController.leads.firstWhere((ld) => ld.id == entryValue['visit_id']).name}",
+                        style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     },
-                    if (purpose != '')Text("Purpose: $purpose"),
+                    if (purpose != '') Text("Purpose: $purpose"),
                   ],
                 ),
                 SizedBox(height: 15.0),
@@ -3195,31 +2891,27 @@ class _CreatePlanState extends State<CreatePlan> {
                           _contactPersonController.text = entryValue['contact_person'];
                           _stateController.text = entryValue['state'];
                           _cityController.text = entryValue['city'];
-                          _pincodeController.text = entryValue['pin_code'];
                           _addressController.text = entryValue['address'];
-                          selectedBusiness = apiController.leadbusiness.firstWhere(
+                          selectedBusiness = apiController.leadbusiness
+                              .firstWhere(
                                 (b) => b.id == entryValue['current_business'],
                           );
                           selectedLeadType = apiController.leadTypes.firstWhere(
                                 (lt) => lt.name == entryValue['lead_type'],
                           );
-                          selectedLeadSource = apiController.leadSource.firstWhere(
+                          selectedLeadSource = apiController.leadSource
+                              .firstWhere(
                                 (ls) => ls.name == entryValue['lead_source'],
                           );
                           isGstRegistered = entryValue['is_gst_registered'];
                         }
 
-                        // if (selectedValue == 'FollowUp Leads') {
-                        //   followLeadVisit = apiController.leads.firstWhere(
-                        //         (ld) => ld.id == entryValue['visit_id'],
-                        //   );
-                        // }
                         if (selectedValue == 'FollowUp Leads') {
-                          // Use firstWhereOrNull here too
-                          followLeadVisit = apiController.leads.firstWhereOrNull(
+                          followLeadVisit = apiController.leads.firstWhere(
                                 (ld) => ld.id == entryValue['visit_id'],
                           );
                         }
+
                         print(entryValue['visit_id']);
                         print(followLeadVisit?.id);
                         showModalBottomSheet(
@@ -3235,7 +2927,8 @@ class _CreatePlanState extends State<CreatePlan> {
                             return StatefulBuilder(
                               builder: (context, setModalState) {
 
-                                 // 1. Obtenemos el ID del concesionario actual que se está editando.
+                                // EXPLICACIÓN: CÓDIGO AÑADIDO Y MODIFICADO
+                                // 1. Obtenemos el ID del concesionario actual que se está editando.
                                 final int? currentEditingDealerId = entryValue['customer_id'];
                                 // 2. Obtenemos los IDs de los otros concesionarios seleccionados, excluyendo el actual.
                                 final selectedDealerIds = getSelectedDealerIds(excludeId: currentEditingDealerId);
@@ -3243,6 +2936,7 @@ class _CreatePlanState extends State<CreatePlan> {
                                 final availableDealers = apiController.dealers
                                     .where((dealer) => !selectedDealerIds.contains(dealer.id))
                                     .toList();
+
 
                                 return Padding(
                                   padding: EdgeInsets.only(
@@ -3300,7 +2994,8 @@ class _CreatePlanState extends State<CreatePlan> {
                                               name,
                                               departmentController,
                                             ),
-                                          if (selectedValue == 'Warehouse/Branch')
+                                          if (selectedValue ==
+                                              'Warehouse/Branch')
                                             _buildWarehouseSection(
                                               warehouseId,
                                               warehouseName,
@@ -3366,7 +3061,9 @@ class _CreatePlanState extends State<CreatePlan> {
                                             const SizedBox(height: 15),
                                             TextField(
                                               controller: purposeController,
-                                              decoration: _textDecoration('Purpose of Visit',),
+                                              decoration: _textDecoration(
+                                                'Purpose of Visit',
+                                              ),
                                               maxLines: 3,
                                               textAlignVertical:
                                               TextAlignVertical.top,
@@ -3387,311 +3084,122 @@ class _CreatePlanState extends State<CreatePlan> {
                                             ),
                                           },
                                           const SizedBox(height: 20),
-                                          // Align(
-                                          //   alignment: Alignment.bottomRight,
-                                          //   child: ElevatedButton(
-                                          //     onPressed: () {
-                                          //       setState(() {
-                                          //         final visit = visits.firstWhere((v) =>
-                                          //         v['visit_date'] ==
-                                          //               _visitDateController.text,
-                                          //           orElse: () =>
-                                          //           <String, dynamic>{},
-                                          //         );
-                                          //
-                                          //         // visit['data'][entryIndex] = {
-                                          //         //   'type': entryValue['type'],
-                                          //         //   if (selectedValue == 'Dealer') ...{
-                                          //         //     'customer_id': dealerId,
-                                          //         //     'name': dealerName,
-                                          //         //   },
-                                          //         //   if (selectedValue == 'Warehouse/Branch') ...{
-                                          //         //     'location_id': warehouseId,
-                                          //         //     'name': warehouseName,
-                                          //         //   },
-                                          //         //   if (selectedValue == 'Service') ...{
-                                          //         //     'name': selectedService,
-                                          //         //     "customer_id": dealerId,
-                                          //         //     "dealerName": dealerName,
-                                          //         //   },
-                                          //         //   if (selectedValue == 'Others') ...{
-                                          //         //     'name': selectedOthers,
-                                          //         //     "customer_id": dealerId,
-                                          //         //     "dealerName": dealerName,
-                                          //         //   },
-                                          //         //   if (selectedValue == 'New lead') ...{
-                                          //         //     "name": _leadNameController.text,
-                                          //         //     "primary_no": _phoneController.text,
-                                          //         //     "state": _stateController.text,
-                                          //         //     "city": _cityController.text,
-                                          //         //     "lead_type": selectedLeadType?.name,
-                                          //         //     "lead_source": selectedLeadSource?.name,
-                                          //         //     "address": _addressController.text,
-                                          //         //     "current_business": selectedBusiness?.id,
-                                          //         //     "type": "new_lead",
-                                          //         //     "is_gst_registered": isGstRegistered,
-                                          //         //   },
-                                          //         //   if (selectedValue == 'Department')'department_name': departmentController.text,
-                                          //         //   if (selectedValue == 'Transit')'transit_name': transitController.text,
-                                          //         //   if (selectedValue != 'Service' && selectedValue != 'Others')'visit_purpose': purposeController.text,
-                                          //         //   if ((selectedValue == 'Service' && entryValue['visit_purpose'] != '') ||
-                                          //         //       (selectedValue == 'Others' && entryValue['visit_purpose'] != ''))'visit_purpose': purposeController.text,
-                                          //         // };
-                                          //         /// visit Update Code ok
-                                          //         visit['data'][entryIndex] = {
-                                          //           'type': entryValue['type'],
-                                          //           if (selectedValue == 'Dealer') ...{
-                                          //             'customer_id': dealerId,
-                                          //             'name': dealerName,
-                                          //           },
-                                          //           if (selectedValue == 'Warehouse/Branch') ...{
-                                          //             'location_id': warehouseId,
-                                          //             'name': warehouseName,
-                                          //           },
-                                          //           if (selectedValue == 'Service') ...{
-                                          //             'name': selectedService,
-                                          //             if (selectedService != "Service/Repair/Assembly") ...{
-                                          //               "customer_id": dealerId,
-                                          //               "dealerName": dealerName,
-                                          //             },
-                                          //           },
-                                          //           if (selectedValue == 'Others') ...{
-                                          //             'name': selectedOthers,
-                                          //             "customer_id": dealerId,
-                                          //             "dealerName": dealerName,
-                                          //           },
-                                          //           if (selectedValue == 'Activity') ...{
-                                          //             'name': selectedActivity,
-                                          //           },
-                                          //           if (selectedValue == 'New lead') ...{
-                                          //             "name": _leadNameController.text,
-                                          //             "primary_no": _phoneController.text,
-                                          //             "contact_person":_contactPersonController.text,
-                                          //             "state": _stateController.text,
-                                          //             "pin_code": _pincodeController.text,
-                                          //             "city": _cityController.text,
-                                          //             "lead_type": selectedLeadType?.name,
-                                          //             "lead_source": selectedLeadSource?.name,
-                                          //             "address": _addressController.text,
-                                          //             "current_business": selectedBusiness?.id,
-                                          //             "type": "new_lead",
-                                          //             "is_gst_registered":
-                                          //             isGstRegistered,
-                                          //           },
-                                          //           if (selectedValue == 'FollowUp Leads') ...{
-                                          //             "visit_id":
-                                          //             followLeadVisit?.id,
-                                          //             "type": "followup_lead",
-                                          //           },
-                                          //           if (selectedValue == 'Department')
-                                          //             'name':
-                                          //             departmentController.text,
-                                          //           if (selectedValue == 'Transit')
-                                          //             'name': transitController.text,
-                                          //           if (purposeController.text != 'Transit') ...{
-                                          //             'visit_purpose': purposeController.text,
-                                          //           },
-                                          //         };
-                                          //       });
-                                          //       _clearForm();
-                                          //       Navigator.pop(context);
-                                          //     },
-                                          //     style: ElevatedButton.styleFrom(
-                                          //       backgroundColor: Colors.black,
-                                          //       foregroundColor: Colors.white,
-                                          //       padding:
-                                          //       const EdgeInsets.symmetric(
-                                          //         //vertical: 15,
-                                          //         horizontal: 20,
-                                          //       ),
-                                          //     ),
-                                          //     child: const Text("Update"),
-                                          //   ),
-                                          // ),
-                                          // --- Edit Modal ke andar Update Button ka logic ---
                                           Align(
                                             alignment: Alignment.bottomRight,
                                             child: ElevatedButton(
                                               onPressed: () {
-                                                // --- VALIDATION LOGIC FOR UPDATE START ---
-                                                bool isUpdateValid = false;
-                                                String errorMsg = "";
-
-                                                if (selectedValue == 'Dealer') {
-                                                  if (dealerId != null && purposeController.text.trim().isNotEmpty) {
-                                                    isUpdateValid = true;
-                                                  } else {
-                                                    errorMsg = "Please select a Dealer and enter Purpose";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'Department') {
-                                                  if (departmentController.text.trim().isNotEmpty && purposeController.text.trim().isNotEmpty) {
-                                                    isUpdateValid = true;
-                                                  } else {
-                                                    errorMsg = "Please fill Department Name and Purpose";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'Warehouse/Branch') {
-                                                  if (warehouseId != null && purposeController.text.trim().isNotEmpty) {
-                                                    isUpdateValid = true;
-                                                  } else {
-                                                    errorMsg = "Please select warehouse branch and purpose";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'Transit') {
-                                                  if (transitController.text.trim().isNotEmpty && purposeController.text.trim().isNotEmpty) {
-                                                    isUpdateValid = true;
-                                                  } else {
-                                                    errorMsg = "Please fill Transit name and Purpose";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'Service') {
-                                                  if (selectedService == null) {
-                                                    errorMsg = "Please select Service type";
-                                                  } else if (selectedService == 'Service/Repair/Assembly') {
-                                                    if (purposeController.text.trim().isNotEmpty) isUpdateValid = true;
-                                                    else errorMsg = "Please enter Purpose for Service/Repair";
-                                                  } else if (selectedService == 'Spare Parts Order Colletion') {
-                                                    if (dealerId != null) isUpdateValid = true;
-                                                    else errorMsg = "Please select a Dealer for Spare Parts";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'Activity') {
-                                                  if (selectedActivity != null && purposeController.text.trim().isNotEmpty) {
-                                                    isUpdateValid = true;
-                                                  } else {
-                                                    errorMsg = "Please select Activity and enter Purpose";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'Others') {
-                                                  if (selectedOthers == null) {
-                                                    errorMsg = "Please select Others type";
-                                                  } else if (selectedOthers == 'Dealer Visit') {
-                                                    if (dealerId != null) isUpdateValid = true;
-                                                    else errorMsg = "Please select a Dealer";
-                                                  } else if (selectedOthers == 'Others') {
-                                                    if (purposeController.text.trim().isNotEmpty) isUpdateValid = true;
-                                                    else errorMsg = "Please enter Purpose of visit";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'New lead') {
-                                                  if (_leadNameController.text.isNotEmpty &&
-                                                      _phoneController.text.isNotEmpty &&
-                                                      _cityController.text.isNotEmpty &&
-                                                      _pincodeController.text.isNotEmpty) {
-                                                    isUpdateValid = true;
-                                                  } else {
-                                                    errorMsg = "Please fill all required lead fields (Name, Phone, City, Pin)";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'FollowUp Leads') {
-                                                  if (followLeadVisit != null) {
-                                                    isUpdateValid = true;
-                                                  } else {
-                                                    errorMsg = "Please select a Lead for follow-up";
-                                                  }
-                                                }
-                                                else if (selectedValue == 'HO') {
-                                                  if (purposeController.text.trim().isNotEmpty) isUpdateValid = true;
-                                                  else errorMsg = "Please enter Purpose for HO visit";
-                                                }
-
-                                                // Check if valid before performing update
-                                                if (!isUpdateValid) {
-                                                  Get.snackbar(
-                                                    "Validation Error",
-                                                    errorMsg,
-                                                    backgroundColor: Colors.red,
-                                                    colorText: Colors.white,
-                                                    snackPosition: SnackPosition.TOP,
-                                                    duration: Duration(seconds: 2),
-                                                  );
-                                                  return; // Validation fail, update stop
-                                                }
-                                                // --- VALIDATION LOGIC END ---
-
-                                                // Ab purana update logic yahan se chalega
                                                 setState(() {
-                                                  final visit = visits.firstWhere(
-                                                        (v) => v['visit_date'] == _visitDateController.text,
-                                                    orElse: () => <String, dynamic>{},
+                                                  final visit = visits.firstWhere((v) =>
+                                                  v['visit_date'] ==
+                                                        _visitDateController.text,
+                                                    orElse: () =>
+                                                    <String, dynamic>{},
                                                   );
 
-                                                  if (visit.isNotEmpty) {
-                                                    visit['data'][entryIndex] = {
-                                                      'type': entryValue['type'],
-                                                      if (selectedValue == 'Dealer') ...{
-                                                        'customer_id': dealerId,
-                                                        'name': dealerName,
-                                                        'visit_purpose': purposeController.text.trim(),
+                                                  // visit['data'][entryIndex] = {
+                                                  //   'type': entryValue['type'],
+                                                  //   if (selectedValue == 'Dealer') ...{
+                                                  //     'customer_id': dealerId,
+                                                  //     'name': dealerName,
+                                                  //   },
+                                                  //   if (selectedValue == 'Warehouse/Branch') ...{
+                                                  //     'location_id': warehouseId,
+                                                  //     'name': warehouseName,
+                                                  //   },
+                                                  //   if (selectedValue == 'Service') ...{
+                                                  //     'name': selectedService,
+                                                  //     "customer_id": dealerId,
+                                                  //     "dealerName": dealerName,
+                                                  //   },
+                                                  //   if (selectedValue == 'Others') ...{
+                                                  //     'name': selectedOthers,
+                                                  //     "customer_id": dealerId,
+                                                  //     "dealerName": dealerName,
+                                                  //   },
+                                                  //   if (selectedValue == 'New lead') ...{
+                                                  //     "name": _leadNameController.text,
+                                                  //     "primary_no": _phoneController.text,
+                                                  //     "state": _stateController.text,
+                                                  //     "city": _cityController.text,
+                                                  //     "lead_type": selectedLeadType?.name,
+                                                  //     "lead_source": selectedLeadSource?.name,
+                                                  //     "address": _addressController.text,
+                                                  //     "current_business": selectedBusiness?.id,
+                                                  //     "type": "new_lead",
+                                                  //     "is_gst_registered": isGstRegistered,
+                                                  //   },
+                                                  //   if (selectedValue == 'Department')'department_name': departmentController.text,
+                                                  //   if (selectedValue == 'Transit')'transit_name': transitController.text,
+                                                  //   if (selectedValue != 'Service' && selectedValue != 'Others')'visit_purpose': purposeController.text,
+                                                  //   if ((selectedValue == 'Service' && entryValue['visit_purpose'] != '') ||
+                                                  //       (selectedValue == 'Others' && entryValue['visit_purpose'] != ''))'visit_purpose': purposeController.text,
+                                                  // };
+                                                  /// visit Update Code ok
+                                                  visit['data'][entryIndex] = {
+                                                    'type': entryValue['type'],
+                                                    if (selectedValue == 'Dealer') ...{
+                                                      'customer_id': dealerId,
+                                                      'name': dealerName,
+                                                    },
+                                                    if (selectedValue == 'Warehouse/Branch') ...{
+                                                      'location_id': warehouseId,
+                                                      'name': warehouseName,
+                                                    },
+                                                    if (selectedValue == 'Service') ...{
+                                                      'name': selectedService,
+                                                      if (selectedService != "Service/Repair/Assembly") ...{
+                                                        "customer_id": dealerId,
+                                                        "dealerName": dealerName,
                                                       },
-                                                      if (selectedValue == 'Warehouse/Branch') ...{
-                                                        'location_id': warehouseId,
-                                                        'name': warehouseName,
-                                                        'visit_purpose': purposeController.text.trim(),
-                                                      },
-                                                      if (selectedValue == 'Service') ...{
-                                                        'name': selectedService,
-                                                        'visit_purpose': purposeController.text.trim(),
-                                                        if (selectedService != "Service/Repair/Assembly") ...{
-                                                          "customer_id": dealerId,
-                                                          "dealerName": dealerName,
-                                                        },
-                                                      },
-                                                      if (selectedValue == 'Others') ...{
-                                                        'name': selectedOthers,
-                                                        'visit_purpose': purposeController.text.trim(),
-                                                        if (selectedOthers == 'Dealer Visit') ...{
-                                                          "customer_id": dealerId,
-                                                          "dealerName": dealerName,
-                                                        },
-                                                      },
-                                                      if (selectedValue == 'Activity') ...{
-                                                        'name': selectedActivity,
-                                                        'visit_purpose': purposeController.text.trim(),
-                                                      },
-                                                      if (selectedValue == 'New lead') ...{
-                                                        "name": _leadNameController.text.trim(),
-                                                        "primary_no": _phoneController.text.trim(),
-                                                        "contact_person": _contactPersonController.text.trim(),
-                                                        "state": _stateController.text.trim(),
-                                                        "pin_code": _pincodeController.text.trim(),
-                                                        "city": _cityController.text.trim(),
-                                                        "lead_type": selectedLeadType?.name,
-                                                        "lead_source": selectedLeadSource?.name,
-                                                        "address": _addressController.text.trim(),
-                                                        "current_business": selectedBusiness?.id,
-                                                        "type": "new_lead",
-                                                        "is_gst_registered": isGstRegistered,
-                                                      },
-                                                      if (selectedValue == 'FollowUp Leads') ...{
-                                                        "visit_id": followLeadVisit?.id,
-                                                        "type": "followup_lead",
-                                                      },
-                                                      if (selectedValue == 'Department') ...{
-                                                        'name': departmentController.text.trim(),
-                                                        'visit_purpose': purposeController.text.trim(),
-                                                      },
-                                                      if (selectedValue == 'Transit') ...{
-                                                        'name': transitController.text.trim(),
-                                                        'visit_purpose': purposeController.text.trim(),
-                                                      },
-                                                      if (selectedValue == 'HO') ...{
-                                                        'name': 'Kolkata (Head Office)',
-                                                        'type': 'ho',
-                                                        'visit_purpose': purposeController.text.trim(),
-                                                      }
-                                                    };
-                                                  }
+                                                    },
+                                                    if (selectedValue == 'Others') ...{
+                                                      'name': selectedOthers,
+                                                      "customer_id": dealerId,
+                                                      "dealerName": dealerName,
+                                                    },
+                                                    if (selectedValue == 'Activity') ...{
+                                                      'name': selectedActivity,
+                                                    },
+                                                    if (selectedValue == 'New lead') ...{
+                                                      "name": _leadNameController.text,
+                                                      "primary_no": _phoneController.text,
+                                                      "contact_person":_contactPersonController.text,
+                                                      "state": _stateController.text,
+                                                      "city": _cityController.text,
+                                                      "lead_type": selectedLeadType?.name,
+                                                      "lead_source": selectedLeadSource?.name,
+                                                      "address": _addressController.text,
+                                                      "current_business": selectedBusiness?.id,
+                                                      "type": "new_lead",
+                                                      "is_gst_registered":
+                                                      isGstRegistered,
+                                                    },
+                                                    if (selectedValue == 'FollowUp Leads') ...{
+                                                      "visit_id":
+                                                      followLeadVisit?.id,
+                                                      "type": "followup_lead",
+                                                    },
+                                                    if (selectedValue == 'Department')
+                                                      'name':
+                                                      departmentController.text,
+                                                    if (selectedValue == 'Transit')
+                                                      'name': transitController.text,
+                                                    if (purposeController.text != 'Transit') ...{
+                                                      'visit_purpose': purposeController.text,
+                                                    },
+                                                  };
                                                 });
-
                                                 _clearForm();
                                                 Navigator.pop(context);
                                               },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.black,
                                                 foregroundColor: Colors.white,
-                                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                                padding:
+                                                const EdgeInsets.symmetric(
+                                                  //vertical: 15,
+                                                  horizontal: 20,
+                                                ),
                                               ),
                                               child: const Text("Update"),
                                             ),
@@ -3820,109 +3328,9 @@ class _CreatePlanState extends State<CreatePlan> {
           decoration: _textDecoration('Contact person'),
         ),
         const SizedBox(height: 15),
-
-        GooglePlaceAutoCompleteTextField(
-          textEditingController: _addressController,
-          googleAPIKey: "AIzaSyDPbGzcvHYuIK2boIPD8VVuzWf8_g3tDs0",
-          inputDecoration: _textDecoration('Address, pincode'),
-          focusNode: _addressFocusNode,
-          debounceTime: 600,
-          countries: ["in"],
-          isLatLngRequired: true,
-
-          // YE SECTION STATE, CITY, AUR PINCODE NIKALEGA
-          getPlaceDetailWithLatLng: (Prediction prediction) async {
-            if (prediction.lat != null && prediction.lng != null) {
-              try {
-                double lat = double.parse(prediction.lat!);
-                double lng = double.parse(prediction.lng!);
-
-                // Reverse Geocoding
-                List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
-
-                if (placemarks.isNotEmpty) {
-                  Placemark place = placemarks[0];
-
-                  setState(() {
-                    // 1. State Filter
-                    _stateController.text = place.administrativeArea ?? "";
-
-                    // 2. City/Village Filter
-                    // Logic: Pehle 'locality' check karega, agar wo khali hai toh 'subLocality' ya 'subAdministrativeArea' (District) lega.
-                    String city = place.locality ?? "";
-                    if (city.isEmpty) {
-                      city = place.subLocality ?? "";
-                    }
-                    if (city.isEmpty) {
-                      city = place.subAdministrativeArea ?? ""; // Ye aksar District hota hai
-                    }
-                    _cityController.text = city;
-
-                    // 3. Pin Code Filter
-                    _pincodeController.text = place.postalCode ?? "";
-
-                    print("Filtered Data -> State: ${_stateController.text}, City: ${_cityController.text}, Pin: ${_pincodeController.text}");
-                  });
-                }
-              } catch (e) {
-                print("Geocoding Error: $e");
-              }
-            }
-          },
-
-          itemClick: (Prediction prediction) {
-            _addressController.text = prediction.description ?? "";
-            _addressController.selection = TextSelection.fromPosition(
-              TextPosition(offset: _addressController.text.length),
-            );
-            FocusScope.of(context).unfocus();
-          },
-
-          itemBuilder: (context, index, Prediction prediction) {
-            return Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  const Icon(Icons.location_on, color: Colors.red),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(prediction.description ?? ""))
-                ],
-              ),
-            );
-          },
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 7.0),
-          child: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: "Note : ",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold, // Bold ke liye
-                    fontSize: 14,
-                  ),
-                ),
-                TextSpan(
-                  text: "You should provide proper address with pincode and shop name",
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.normal,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 15),
-        // State Field
         TextField(
           controller: _stateController,
           decoration: _textDecoration('State'),
-          // readOnly: true, // Optional: taaki user ise change na kare manually
         ),
         const SizedBox(height: 15),
         TextField(
@@ -3930,13 +3338,37 @@ class _CreatePlanState extends State<CreatePlan> {
           decoration: _textDecoration('City/Village'),
         ),
         const SizedBox(height: 15),
-        TextField(
-          controller: _pincodeController,
-          decoration: _textDecoration('Pin Code'),
-          keyboardType: TextInputType.number,
+        // TextField(
+        //   controller: _addressController,
+        //   decoration: _textDecoration('Address'),
+        // ),
+        GooglePlaceAutoCompleteTextField(
+          textEditingController: _addressController,
+          googleAPIKey: "AIzaSyDPbGzcvHYuIK2boIPD8VVuzWf8_g3tDs0",
+          inputDecoration: _textDecoration('Address'),
+          focusNode: _addressFocusNode,
+          debounceTime: 600,
+          countries: ["in"],
+          isLatLngRequired: true,
+          getPlaceDetailWithLatLng: (Prediction prediction) {
+            print("Selected: ${prediction.description}");
+            print("Lat: ${prediction.lat}, Lng: ${prediction.lng}");
+          },
+          itemClick: (Prediction prediction) {
+            _addressController.text = prediction.description ?? "";
+            _addressController.selection = TextSelection.fromPosition(
+              TextPosition(offset: _addressController.text.length),
+            );
+            FocusScope.of(context).unfocus();
+          },
+          itemBuilder: (context, index, Prediction prediction) {
+            return ListTile(
+              leading: const Icon(Icons.location_on),
+              title: Text(prediction.description ?? ""),
+            );
+          },
         ),
         const SizedBox(height: 15),
-
         DropdownButtonFormField<LeadBusinessModel>(
           decoration: _dropdownDecoration('Business'),
           value: selectedBusiness,
@@ -6160,108 +5592,3 @@ class _CreatePlanState extends State<CreatePlan> {
 //     );
 //   }
 // }
-
-
-/// niche wala code addvisit ke under implement karni hai
-// // 2. 🔥 Validation Logic (FollowUp Specific)
-// // Rule: Same Client cannot be added twice in the whole plan.
-// bool alreadyExistsGlobally = false;
-// for (var v in visits) {
-//   for (var e in (v["data"] ?? [])) {
-//     if (_isSameEntry(e, newEntry)) {
-//       alreadyExistsGlobally = true;
-//       break;
-//     }
-//   }
-// }
-// if (alreadyExistsGlobally) {
-//   Get.snackbar(
-//     "Message",
-//      "Follow-up for this client is already added in this date.",
-//     //"This client is already added for this date..",
-//     backgroundColor: Colors.redAccent,
-//     colorText: Colors.white,
-//   );
-//   return; // Stop here, don't add duplicate client
-// }
-// // Find row for same date
-// int existingIndex = visits.indexWhere((v) => _sameStr(v["visit_date"], visitDate));
-//
-// // NEW FIX: Check duplicate BEFORE adding row
-// if (existingIndex != -1) {
-//   List row = visits[existingIndex]["data"];
-//   if (row.any((e) => _isSameEntry(e, newEntry))) {
-//     return; // STOP DUPLICATE
-//   }
-// }
-//
-// // If no row found → before making new row also check duplicates globally
-// if (existingIndex == -1) {
-//   // SAFETY: check across whole list also
-//   for (var v in visits) {
-//     for (var e in (v["data"] ?? [])) {
-//       if (_isSameEntry(e, newEntry)) return;
-//     }
-//   }
-//
-//   visits.add({
-//     "visit_date": visitDate,
-//     "data": [newEntry],
-//   });
-//   return;
-// }
-//
-// // Otherwise add inside existing row
-// visits[existingIndex]["data"].add(newEntry);
-/*
-      if (["service", "activity", "others", "transit"]
-          .contains(newEntry["type"])) {
-        final n = (newEntry["name"] ?? "").toString().trim();
-        final p = (newEntry["visit_purpose"] ?? "").toString().trim();
-
-        if (n.isEmpty && p.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Name or Purpose required")),
-          );
-          return;
-        }
-      }
-
-      bool requiresNameOrPurpose = newEntry["type"] != "followup_lead";
-      if (requiresNameOrPurpose) {
-        final n = (newEntry["name"] ?? "").toString().trim();
-        final p = (newEntry["visit_purpose"] ?? "").toString().trim();
-        if (n.isEmpty && p.isEmpty) return;
-      }
-
-      // Find row for same date
-      int existingIndex =
-      visits.indexWhere((v) => _sameStr(v["visit_date"], visitDate));
-
-      // NEW FIX: Check duplicate BEFORE adding row
-      if (existingIndex != -1) {
-        List row = visits[existingIndex]["data"];
-        if (row.any((e) => _isSameEntry(e, newEntry))) {
-          return; // STOP DUPLICATE
-        }
-      }
-
-      // If no row found → before making new row also check duplicates globally
-      if (existingIndex == -1) {
-        // SAFETY: check across whole list also
-        for (var v in visits) {
-          for (var e in (v["data"] ?? [])) {
-            if (_isSameEntry(e, newEntry)) return;
-          }
-        }
-
-        visits.add({
-          "visit_date": visitDate,
-          "data": [newEntry],
-        });
-        return;
-      }
-
-      // Otherwise add inside existing row
-      visits[existingIndex]["data"].add(newEntry);
-       */

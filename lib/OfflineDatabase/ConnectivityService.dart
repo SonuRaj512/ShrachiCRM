@@ -1,9 +1,20 @@
-// SONU RAJ: Fixed import path and added internet_helper import
 import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:get/get.dart';
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_disposable.dart';
+
 import 'DBHelper.dart';
-import '../utils/internet_helper.dart';
+
+  // Check if device has any active internet connection
+   Future<bool> hasInternet() async {
+    var result = await (Connectivity().checkConnectivity());
+    // In latest version connectivity_plus returns a List
+    if (result.contains(ConnectivityResult.none)) {
+      return false;
+    }
+    return true;
+  }
 
 class ConnectivityService extends GetxService {
   var isOnline = false.obs;
@@ -70,7 +81,7 @@ class ConnectivityService extends GetxService {
 
       // Pehle network connectivity check karein
       final bool hasNetworkConnection = results.any((result) =>
-          result == ConnectivityResult.mobile ||
+      result == ConnectivityResult.mobile ||
           result == ConnectivityResult.wifi ||
           result == ConnectivityResult.ethernet);
 

@@ -55,7 +55,7 @@ class DatabaseHelper {
         last_retry_at TEXT
       )
     ''');
-print('offline_checkin');
+    print('offline_checkin');
     await db.execute('''
       CREATE TABLE offline_checkout (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,7 +156,6 @@ print('offline_checkin');
     required String convinceType,
     String? convinceText,
     double? checkIn_distance,
-    required bool isConfirmedAddress,
   }) async {
     final db = await database;
     await db.insert('offline_checkin', {
@@ -220,7 +219,7 @@ print('offline_checkin');
   // SONU RAJ: Added safe CheckinController handling to prevent crashes
   Future<void> _syncCheckinsWithRetry() async {
     final db = await database;
-    
+
     // SONU RAJ: CheckinController ko safely get karein - agar nahi hai to create kar dein
     CheckinController controller;
     try {
@@ -229,7 +228,7 @@ print('offline_checkin');
       print("⚠️ CheckinController not found, creating new instance for sync");
       controller = Get.put(CheckinController());
     }
-    
+
     final records = await db.query('offline_checkin');
 
     for (var item in records) {
@@ -254,7 +253,7 @@ print('offline_checkin');
   // SONU RAJ: Added safe CheckinController handling to prevent crashes
   Future<void> _syncCheckoutsWithRetry() async {
     final db = await database;
-    
+
     // SONU RAJ: CheckinController ko safely get karein - agar nahi hai to create kar dein
     CheckinController controller;
     try {
@@ -263,7 +262,7 @@ print('offline_checkin');
       print("⚠️ CheckinController not found, creating new instance for sync");
       controller = Get.put(CheckinController());
     }
-    
+
     final records = await db.query('offline_checkout');
 
     for (var item in records) {

@@ -6,6 +6,7 @@ import 'package:shrachi/api/checkin_controller.dart';
 import 'package:shrachi/api/expense_controller.dart';
 import '../../../../models/ExpenseUpdateModel.dart';
 import '../../../enums/color_palette.dart';
+import '../../ExpenseReportPage/ExpenseReport.dart';
 import '../outcome_page.dart';
 import 'AllExpenseUpdate_screen.dart';
 import 'create_expense.dart';
@@ -40,7 +41,6 @@ class _ExpenseListState extends State<ExpenseList> {
       );
     });
     _checkinController.checkOutcomeStatus(widget.visitId);
-    print("Expense CheckIn Date : ${widget.startDate}");
   }
   // ✅ Updated Refresh Function
   Future<void> handleRefresh() async {
@@ -233,6 +233,8 @@ class _ExpenseListState extends State<ExpenseList> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -255,7 +257,6 @@ class _ExpenseListState extends State<ExpenseList> {
               // ),
             ],
           ),
-          backgroundColor: ColorPalette.pictonBlue500,
           elevation: 2,
           titleTextStyle: const TextStyle(
             color: Colors.white, // ✅ text color white
@@ -336,6 +337,7 @@ class _ExpenseListState extends State<ExpenseList> {
                         final outcome = _expenseController.expenses.isNotEmpty
                             ? _expenseController.expenses[0].visit?.checkins?.outcome
                             : null;
+
                         return Text(
                           outcome == null ? "Create Outcome" : "Submitted Outcome",
                           textAlign: TextAlign.center,

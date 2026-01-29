@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.1+10
+version: 1.0.0+1
 
 environment:
   sdk: ^3.7.2
@@ -71,9 +71,6 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.5
   connectivity_plus: ^7.0.0
-  flutter_map: ^8.2.2
-  latlong2: ^0.9.1
-  flutter_map_tile_caching: ^10.1.1
 
 
 
@@ -134,21 +131,21 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/ShrachiCRMLogo.jpeg"
+  image_path: "assets/images/shrachilogo.jpeg"
   min_sdk_android: 21 # android min sdk min:16, default 21
   background_image: "assets/images/splash_bg.png"
   web:
     generate: true
-    image_path: "assets/images/ShrachiCRMLogo.jpeg"
+    image_path: "assets/images/shrachilogo.jpeg"
     background_image: "assets/images/splash_bg.png"
     background_color: "#hexcode"
     theme_color: "#hexcode"
   windows:
     generate: true
-    image_path: "assets/images/ShrachiCRMLogo.jpeg"
+    image_path: "assets/images/shrachilogo.jpeg"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/images/ShrachiCRMLogo.jpeg"
+    image_path: "assets/images/shrachilogo.jpeg"
     #adaptive_icon_foreground: "assets/icons/app.png"
     app_name: "SharchiCRM"

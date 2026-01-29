@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shrachi/api/api_hendler.dart';
@@ -14,14 +15,11 @@ import 'api_const.dart';
 
 class ApiService {
   static String token = '';
-  static Future<Map<String, dynamic>> post(
-    String endpoint,
-    Map<String, String> body,
-  ) async {
+
+  static Future<Map<String, dynamic>> post(String endpoint, Map<String, String> body,) async {
     var url = Uri.parse("$baseUrl$dealerapi");
 
     var response = await http.post(url, body: body);
-
     return {
       "statusCode": response.statusCode,
       "body": jsonDecode(response.body),
@@ -232,7 +230,11 @@ class ApiService {
     return [];
   }
 
-  Future<TourResponse> fetchTours({String? serialNo, String? type, String? visitSerialNo,}) async {
+  Future<TourResponse> fetchTours({
+    String? serialNo,
+    String? type,
+    String? visitSerialNo,
+  }) async {
     final token = await _getToken();
 
     String apiUrl = "${baseUrl}user-tours";
@@ -300,4 +302,102 @@ class ApiService {
     return finalExpenses;
   }
 
+  // Future<TourResponse> fetchTours({String? serialNo, String? type}) async {
+  //   final token = await _getToken();
+  //
+  //   String apiUrl = "${baseUrl}user-tours";
+  //
+  //   // ✅ Add Query Params if provided
+  //   Map<String, String> queryParams = {};
+  //
+  //   if (serialNo != null && serialNo.isNotEmpty) {
+  //     queryParams["serial_no"] = serialNo;
+  //   }
+  //
+  //   if (type != null && type.isNotEmpty) {
+  //     queryParams["type"] = type;
+  //   }
+  //
+  //   // ✅ Build final URL with query parameters
+  //   if (queryParams.isNotEmpty) {
+  //     apiUrl += "?" + Uri(queryParameters: queryParams).query;
+  //   }
+  //
+  //   print("FINAL API URL => $apiUrl");
+  //
+  //   final response = await http.get(
+  //     Uri.parse(apiUrl),
+  //     headers: {
+  //       "Accept": "application/json",
+  //       "Authorization": "Bearer $token",
+  //     },
+  //   );
+  //
+  //   print("expense or outcome response error => ${response.body}");
+  //
+  //   if (response.statusCode == 200) {
+  //     return tourResponseFromJson(response.body);
+  //   } else {
+  //     throw Exception("Failed to load tours");
+  //   }
+  // }
+
+  // Future<TourResponse> fetchTours({String? serialNo, String? type}) async {
+  //   final token = await _getToken();
+  //
+  //   String apiUrl = "${baseUrl}user-tours";
+  //
+  //   // ✅ Add Query Params if provided
+  //   Map<String, String> queryParams = {};
+  //
+  //   if (serialNo != null && serialNo.isNotEmpty) {
+  //     queryParams["serial_no"] = serialNo;
+  //   }
+  //
+  //   if (type != null && type.isNotEmpty) {
+  //     queryParams["type"] = type;
+  //   }
+  //
+  //   // ✅ Build final URL with query parameters
+  //   if (queryParams.isNotEmpty) {
+  //     apiUrl += "?" + Uri(queryParameters: queryParams).query;
+  //   }
+  //
+  //   print("FINAL API URL => $apiUrl");
+  //
+  //   final response = await http.get(
+  //     Uri.parse(apiUrl),
+  //     headers: {
+  //       "Accept": "application/json",
+  //       "Authorization": "Bearer $token",
+  //     },
+  //   );
+  //
+  //   print("expense or outcome response error => ${response.body}");
+  //
+  //   if (response.statusCode == 200) {
+  //     return tourResponseFromJson(response.body);
+  //   } else {
+  //     throw Exception("Failed to load tours");
+  //   }
+  // }
+
+  // Future<TourResponse> fetchTours() async {
+  //    final token = await _getToken();
+  //    final apiUrl = "${baseUrl}user-tours";
+  //    final response = await http.get(
+  //      Uri.parse(apiUrl),
+  //      headers: {
+  //        "Accept": "application/json",
+  //        "Authorization": "Bearer $token", // ✅ Token yaha pass hoga
+  //      },
+  //    );
+  //
+  //    print("${response.body}");
+  //    if (response.statusCode == 200) {
+  //      return tourResponseFromJson(response.body);
+  //    } else {
+  //      throw Exception('Failed to load tours');
+  //    }
+  //  }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ionicons/ionicons.dart';
 
 class TourPlanWidget extends StatefulWidget {
   final String title;
@@ -19,7 +18,6 @@ class TourPlanWidget extends StatefulWidget {
   final String? tour_status;
   final String? expenseStatusLabel;   // "Partially Approved"
   final String? expenseStatusKey;     // "partial"
-  final bool isLocked;
 
   // final String? Expense_status;
 
@@ -42,7 +40,6 @@ class TourPlanWidget extends StatefulWidget {
     this.tour_status,
     this.expenseStatusLabel,
     this.expenseStatusKey,
-    this.isLocked = false, // 👈 Default false rakha
     //this.Expense_status,
   });
 
@@ -155,9 +152,7 @@ void initState(){
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          // 👈 2. Background color change logic (Locked = Deep Grey, Normal = White)
-          color: widget.isLocked ? const Color(0xFFD6D6D6) : Colors.white,
-          //color: Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
@@ -170,36 +165,15 @@ void initState(){
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.title,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                 if (widget.isLocked)
-                  const Icon(
-                    Ionicons.lock_closed,
-                    color: Colors.red,
-                    size: 18,
-                  ),
-              ],
-            ),
             // 🟢 Title
-            // Text(
-            //   widget.title,
-            //   style: const TextStyle(
-            //     color: Colors.black,
-            //     fontSize: 16,
-            //     fontWeight: FontWeight.w600,
-            //   ),
-            // ),
+            Text(
+              widget.title,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 10.0),
 
             // 🟢 Interval row + trailing button

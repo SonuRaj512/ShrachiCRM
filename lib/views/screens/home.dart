@@ -4,21 +4,16 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:shrachi/api/attendance_controller.dart';
-import 'package:shrachi/api/ProfileController/profile_controller.dart';
+import 'package:shrachi/api/profile_controller.dart';
 import 'package:shrachi/views/enums/color_palette.dart';
 import 'package:shrachi/views/enums/responsive.dart';
 import 'package:shrachi/views/layouts/authenticated_layout.dart';
-import 'package:shrachi/views/screens/AllReport_Screen/FollowUpLead_Screen.dart';
 import 'package:shrachi/views/screens/attendance/attendance.dart';
 import 'package:shrachi/views/screens/notifications/notifications_page.dart';
 import 'package:get/get.dart';
 import 'package:shrachi/views/screens/tours/show_tour.dart';
-import '../../api/LogoutSessionController/SessionController.dart';
 import '../../api/api_controller.dart';
-import '../../api/notification_controller.dart';
-import 'AllReport_Screen/LeadReport_Screen.dart';
 import 'CustomErrorMessage/CustomeErrorMessage.dart';
-import 'checkins/checkins_search.dart';
 
 class Home extends StatefulWidget {
   final VoidCallback openDrawer;
@@ -30,7 +25,6 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   AttendanceController _attendanceController = Get.put(AttendanceController());
-  final NotificationController notificationController = Get.put(NotificationController());
   // final AttendanceController _attendanceController = Get.put(AttendanceController(),);
   final ApiController controller = Get.put(ApiController());
   final ProfileController _profileController = Get.put(ProfileController());
@@ -117,7 +111,6 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    Get.put(SessionController());
     _getCurrentLocationAndAddress();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _profileController.profileDetails();
@@ -125,11 +118,10 @@ class _HomeState extends State<Home> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.fetchTourPlans();
     });
-    notificationController.getAllNotifications();
   }
 
   Color getStatusTextColor(String status) {
-    status = status.toLowerCase();
+    status = status.toLowerCase();        // convert string
     switch (status) {
       case 'confirmed':
         return Colors.green;
@@ -309,50 +301,20 @@ class _HomeState extends State<Home> {
                               color: Colors.white,
                             ),
                           ),
-                          Obx(() {
-                            int count = notificationController.unreadCount.value;
-
-                            return IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const NotificationsPage(),
-                                  ),
-                                );
-                              },
-                              icon: Badge(
-                                backgroundColor: Colors.red,
-                                textColor: Colors.white,
-                                isLabelVisible: count > 0,
-
-                                label: Text(
-                                  count > 99 ? "99+" : count.toString(),
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => NotificationsPage(),
                                 ),
-                                offset: const Offset(4, -4),
-                                child: const Icon(
-                                  Ionicons.notifications,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ),
-                            );
-                          })
-                          // IconButton(
-                          //   onPressed: () {
-                          //     Navigator.push(
-                          //       context,
-                          //       MaterialPageRoute(
-                          //         builder: (context) => NotificationsPage(),
-                          //       ),
-                          //     );
-                          //   },
-                          //   icon: Icon(
-                          //     Ionicons.notifications,
-                          //     color: Colors.white,
-                          //   ),
-                          // ),
+                              );
+                            },
+                            icon: Icon(
+                              Ionicons.notifications,
+                              color: Colors.white,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -989,6 +951,11 @@ class _HomeState extends State<Home> {
                   ),
                   SizedBox(height: 20),
                   Obx(() {
+                    // // Dynamically get previous month full name
+                    // final String previousMonthName = DateFormat('MMMM').format(
+                    //   DateTime(DateTime.now().year, DateTime.now().month - 1),
+                    // );
+                    // Get previous month short name (e.g., "Sep", "Oct")
                     final String previousMonthName = DateFormat('MMM').format(
                       DateTime(DateTime.now().year, DateTime.now().month - 1),
                     );
@@ -1000,132 +967,116 @@ class _HomeState extends State<Home> {
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             /// Follow Up Leads - 1st
-                            InkWell(
-                              onTap: () {
-                                Get.to(()=>FollowupLeadScreen());
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(10),
-                                width: Responsive.isMd(context) ? screenWidth * 0.4 : screenWidth * 0.32,
-                                height: Responsive.isMd(context) ? 150 : 200,
-                                decoration: BoxDecoration(
-                                  color: Colors.blueGrey,  // Change this to any color you want
-                                  borderRadius: BorderRadius.circular(10), // optional rounded corners
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      _profileController.leadFollowThisMonth.value.toString(),
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
+                            Container(
+                              padding: EdgeInsets.all(10),
+                              width: Responsive.isMd(context) ? screenWidth * 0.4 : screenWidth * 0.32,
+                              height: Responsive.isMd(context) ? 150 : 200,
+                              decoration: BoxDecoration(
+                                color: Colors.blueGrey,  // Change this to any color you want
+                                borderRadius: BorderRadius.circular(10), // optional rounded corners
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _profileController.leadFollowThisMonth.value.toString(),
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
                                     ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                      'Follow Up Leads',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: Responsive.isXs(context) ? 12 : 14,
-                                      ),
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    'Follow Up Leads',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: Responsive.isXs(context) ? 12 : 14,
                                     ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                      '$previousMonthName : ${_profileController.leadPendingPreviousMonth.value}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: Responsive.isXs(context) ? 12 : 14,
-                                      ),
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    'Last Month : ${_profileController.leadPendingPreviousMonth.value}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: Responsive.isXs(context) ? 12 : 14,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                             SizedBox(width: 10),
 
                             /// Pending Leads - 2nd
-                            InkWell (
-                              onTap: () {
-                                Get.to(()=>LeadReportScreen());
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(10),
-                                width: Responsive.isMd(context) ? screenWidth * 0.4 : screenWidth * 0.32,
-                                height: Responsive.isMd(context) ? 150 : 200,
-                                decoration: BoxDecoration(
-                                  color: Colors.red, // deeper orange background
-                                  borderRadius: BorderRadius.circular(5),
-                                  border: Border.all(width: 1.0, color: Colors.teal), // deeper border
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      _profileController.leadPendingThisMonth.value.toString(),
+                            Container(
+                              padding: EdgeInsets.all(10),
+                              width: Responsive.isMd(context) ? screenWidth * 0.4 : screenWidth * 0.32,
+                              height: Responsive.isMd(context) ? 150 : 200,
+                              decoration: BoxDecoration(
+                                color: Colors.red, // deeper orange background
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(width: 1.0, color: Colors.teal), // deeper border
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _profileController.leadPendingThisMonth.value.toString(),
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white, // deeper text color
+                                    ),
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                      'Pending Leads',
                                       style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white, // deeper text color
-                                      ),
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                        'Pending Leads',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: Responsive.isXs(context) ? 12 : 14
-                                        )
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                        '$previousMonthName : ${_profileController.leadPendingPreviousMonth.value}',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: Responsive.isXs(context) ? 12 : 14
-                                        )
-                                    ),
-                                  ],
-                                ),
+                                          color: Colors.white,
+                                          fontSize: Responsive.isXs(context) ? 12 : 14
+                                      )
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                      'Last Month : ${_profileController.leadPendingPreviousMonth.value}',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: Responsive.isXs(context) ? 12 : 14
+                                      )
+                                  ),
+                                ],
                               ),
                             ),
 
                             SizedBox(width: 10),
 
                             /// Checkins - 3rd
-                            InkWell(
-                              onTap: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context)=>CheckinsSearch()));
-                               // Get.to(()=>CheckinsSearch());
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(10.0),
-                                width: Responsive.isMd(context) ? screenWidth * 0.4 : screenWidth * 0.32,
-                                height: Responsive.isMd(context) ? 150 : 200,
-                                decoration: BoxDecoration(
-                                  color: Color(0xFF1B5E20), // refreshing green
-                                  borderRadius: BorderRadius.circular(5),
-                                  border: Border.all(width: 1.0, color: Colors.green.withOpacity(0.5)),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      _profileController.checkinsThisMonth.value.toString(),
-                                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.white),
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text('Checkins', style: TextStyle(
-                                            color: Colors.white, fontSize: Responsive.isXs(context) ? 12 : 14),
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                      '$previousMonthName : ${_profileController.checkinsPrevious.value}',
-                                      style: TextStyle(color: Colors.white, fontSize: Responsive.isXs(context) ? 12 : 14),
-                                    ),
-                                  ],
-                                ),
+                            Container(
+                              padding: EdgeInsets.all(10.0),
+                              width: Responsive.isMd(context) ? screenWidth * 0.4 : screenWidth * 0.32,
+                              height: Responsive.isMd(context) ? 150 : 200,
+                              decoration: BoxDecoration(
+                                color: Color(0xFF1B5E20), // refreshing green
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(width: 1.0, color: Colors.green.withOpacity(0.5)),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _profileController.checkinsThisMonth.value.toString(),
+                                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.white),
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text('Checkins',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: Responsive.isXs(context) ? 12 : 14)),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    'Last Month : ${_profileController.checkinsPrevious.value}',
+                                    style: TextStyle(color: Colors.white, fontSize: Responsive.isXs(context) ? 12 : 14),
+                                  ),
+                                ],
                               ),
                             ),
 
@@ -1573,8 +1524,6 @@ class _HomeState extends State<Home> {
             ),
             // SizedBox(height: 20.0),
             Divider(),
-
-            ///start code Latest Tours
             Container(
               width: double.infinity,
               padding: EdgeInsets.symmetric(horizontal: 15.0),
@@ -1679,110 +1628,107 @@ class _HomeState extends State<Home> {
                                   ),
                                 ],
                               ),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          tour.serial_no!,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        tour.serial_no!,
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 2.0,
+                                          horizontal: 15.0,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: getStatusBackgroundColor(tour.status),
+                                          borderRadius: BorderRadius.circular(15),
+                                        ),
+                                        child: Text(
+                                          formatStatusLabel(tour.status),     // 👉 Capital + Rename here
                                           style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
+                                            color: getStatusTextColor(tour.status),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 2.0,
-                                            horizontal: 15.0,
+                                      )
+                                    ],
+                                  ),
+                                  SizedBox(height: 15),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Color(0xff6d6d6d),
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
+                                            ),
+                                            padding: EdgeInsets.all(5),
+                                            child: Icon(
+                                              Ionicons.time_outline,
+                                              size: 15,
+                                            ),
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: getStatusBackgroundColor(tour.status),
-                                            borderRadius: BorderRadius.circular(15),
-                                          ),
-                                          child: Text(
-                                            formatStatusLabel(tour.status),     // 👉 Capital + Rename here
+                                          SizedBox(width: 10.0),
+                                          Text(
+                                            '${DateFormat('dd MMM, yy').format(DateTime.parse(tour.startDate))} - ${DateFormat('dd MMM, yy').format(DateTime.parse(tour.endDate))}',
                                             style: TextStyle(
-                                              color: getStatusTextColor(tour.status),
-                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xff9a9a9a),
                                             ),
                                           ),
-                                        )
-                                      ],
-                                    ),
-                                    SizedBox(height: 15),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                color: Color(0xff6d6d6d),
-                                                borderRadius:
-                                                    BorderRadius.circular(2),
-                                              ),
-                                              padding: EdgeInsets.all(5),
-                                              child: Icon(
-                                                Ionicons.time_outline,
-                                                size: 15,
-                                              ),
-                                            ),
-                                            SizedBox(width: 10.0),
-                                            Text(
-                                              '${DateFormat('dd MMM, yy').format(DateTime.parse(tour.startDate))} - ${DateFormat('dd MMM, yy').format(DateTime.parse(tour.endDate))}',
-                                              style: TextStyle(
-                                                color: Color(0xff9a9a9a),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 10,),
-                                    if (tour.expenseOverallStatus != null)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 2.0,
-                                          horizontal: 7.0,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: getExpenseStatusBackgroundColor(
-                                            tour.expenseOverallStatus!.status,
-                                          ),
-                                          borderRadius: BorderRadius.circular(15),
-                                        ),
-                                        child: Row(
-                                          //mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            const Text(
-                                              "Expense Status : ",
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            Text(
-                                              tour.expenseOverallStatus!.label, // ✅ DIRECT API LABEL
-                                              style: TextStyle(
-                                                color: getExpenseStatusTextColor(
-                                                  tour.expenseOverallStatus!.status,
-                                                ),
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                        ],
                                       ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10,),
+                                  if (tour.expenseOverallStatus != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 2.0,
+                                        horizontal: 7.0,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: getExpenseStatusBackgroundColor(
+                                          tour.expenseOverallStatus!.status,
+                                        ),
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: Row(
+                                        //mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            "Expense Status : ",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          Text(
+                                            tour.expenseOverallStatus!.label, // ✅ DIRECT API LABEL
+                                            style: TextStyle(
+                                              color: getExpenseStatusTextColor(
+                                                tour.expenseOverallStatus!.status,
+                                              ),
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                           ),

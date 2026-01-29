@@ -146,17 +146,6 @@ class ExpenseReportController extends GetxController {
     }
     return value;
   }
-  String getVals(int? isApproved) {
-    switch (isApproved) {
-      case 1:
-        return "approved";
-      case 2:
-        return "rejected";
-      case 0:
-      default:
-        return "pending";
-    }
-  }
 
   Future<void> fetchData() async {
     try {
@@ -303,55 +292,15 @@ class ExpenseReportController extends GetxController {
             infoRow("Start Date:", formatDate(plan.startDate)),
             infoRow("End Date:", formatDate(plan.endDate)),
             infoRow("Tour No.:", plan.serialNo),
-            infoRow("Expense Status:", plan.tourStatus),
-            infoRow("Approval Status:", plan.tourStatus),
+            infoRow("Status:", plan.tourStatus),
 
             pw.SizedBox(height: 10),
-            //infoRow("Hotel Amount: ", "₹ 0"),
-            //infoRow("Total DA:", "₹ ${totalDA.value.toStringAsFixed(2)}"),
-            infoRow("Total Conveyance:","₹ ${totalConveyance.value.toStringAsFixed(2)}"),
-            infoRow("Total Non-Conveyance: ", "₹ ${totalNonConveyance.value.toStringAsFixed(2)}"),
-            //infoRow("Total Non-Conveyance: ", "₹ ${.value.toStringAsFixed(2)}"),
-            infoRow("Total Expense:", "₹ ${totalExpense.value.toStringAsFixed(2)}"),
+            infoRow("Total Expense:", totalExpense.value.toStringAsFixed(2)),
+            infoRow("Total DA:", totalDA.value.toStringAsFixed(2)),
+            infoRow("Total Conveyance:", totalConveyance.value.toStringAsFixed(2)),
 
-
-            // 1. Conveyance Table
-            sectionHeader("Conveyance Expense"),
-            pw.Table(
-              border: pw.TableBorder.all(width: 0.5, color: PdfColors.black),
-              children: [
-                pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                  children: [
-                    pdfText("Date", isHeader: true),
-                    pdfText("Departure Town", isHeader: true),
-                    pdfText("Departure Time", isHeader: true),
-                    pdfText("Arrival Town", isHeader: true),
-                    pdfText("Arrival Time", isHeader: true),
-                    pdfText("Mode of Travel", isHeader: true),
-                    pdfText("Fare(Rs.)", isHeader: true),
-                    pdfText("Remarks", isHeader: true),
-                  ],
-                ),
-                if (conveyanceList.isEmpty)
-                  pw.TableRow(children: [pdfText("No Data")]),
-                ...conveyanceList.map((e) {
-                  return pw.TableRow(children: [
-                    pdfText(formatDate(e.date)),
-                    pdfText(getVal(e.departureTown)),
-                    pdfText(getVal(e.departureTime)),
-                    pdfText(getVal(e.arrivalTown)),
-                    pdfText(getVal(e.arrivalTime)),
-                    pdfText(getVal(e.modeOfTravel)),
-                    pdfText(e.amount.toString()),
-                    pdfText(getVal(e.remarks)),
-                  ]);
-                }).toList(),
-              ],
-            ),
-
-            // 2. Non-Conveyance Table
-            sectionHeader("Non-Conveyance Expense"),
+            // 1. Non-Conveyance Table
+            sectionHeader("Non-Conveyance Details"),
             pw.Table(
               border: pw.TableBorder.all(width: 0.5, color: PdfColors.black),
               children: [
@@ -360,10 +309,9 @@ class ExpenseReportController extends GetxController {
                   decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                   children: [
                     pdfText("Date", isHeader: true),
-                    pdfText("Tour Location", isHeader: true),
-                    pdfText("Hotel Actual", isHeader: true),
-                    pdfText("DA Type", isHeader: true),
-                    pdfText("DA Amt", isHeader: true),
+                    pdfText("Location", isHeader: true),
+                    pdfText("Type", isHeader: true),
+                    pdfText("DA", isHeader: true),
                     pdfText("Other", isHeader: true),
                     pdfText("Total", isHeader: true),
                     pdfText("Remarks", isHeader: true),
@@ -376,7 +324,6 @@ class ExpenseReportController extends GetxController {
                   return pw.TableRow(children: [
                     pdfText(formatDate(e.date)),
                     pdfText(getVal(e.location)),
-                    pdfText(getVal("-",)),
                     pdfText(getVal(e.type)),
                     pdfText(e.type.toLowerCase().contains('da') ? e.amount.toString() : "0"),
                     pdfText(!e.type.toLowerCase().contains('da') ? e.amount.toString() : "0"),
@@ -387,22 +334,50 @@ class ExpenseReportController extends GetxController {
               ],
             ),
 
-            // 3. Visits Table
-            sectionHeader("Local Conveyance Expense"),
+            // 2. Conveyance Table
+            sectionHeader("Conveyance Details"),
             pw.Table(
               border: pw.TableBorder.all(width: 0.5, color: PdfColors.black),
               children: [
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                   children: [
-                    pdfText("Dealer/Lead", isHeader: true),
-                    pdfText("Planned Date", isHeader: true),
-                    pdfText("Visit Type", isHeader: true),
-                    pdfText("Check In Date", isHeader: true),
-                    pdfText("Purpose of Visit", isHeader: true),
+                    pdfText("Date", isHeader: true),
+                    pdfText("From", isHeader: true),
+                    pdfText("To", isHeader: true),
+                    pdfText("Mode", isHeader: true),
+                    pdfText("Fare", isHeader: true),
+                    pdfText("Remarks", isHeader: true),
+                  ],
+                ),
+                if (conveyanceList.isEmpty)
+                  pw.TableRow(children: [pdfText("No Data")]),
+                ...conveyanceList.map((e) {
+                  return pw.TableRow(children: [
+                    pdfText(formatDate(e.date)),
+                    pdfText(getVal(e.departureTown)),
+                    pdfText(getVal(e.arrivalTown)),
+                    pdfText(getVal(e.modeOfTravel)),
+                    pdfText(e.amount.toString()),
+                    pdfText(getVal(e.remarks)),
+                  ]);
+                }).toList(),
+              ],
+            ),
+
+            // 3. Visits Table
+            sectionHeader("Visit Details"),
+            pw.Table(
+              border: pw.TableBorder.all(width: 0.5, color: PdfColors.black),
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    pdfText("Dealer", isHeader: true),
+                    pdfText("Date", isHeader: true),
+                    pdfText("CheckIn", isHeader: true),
+                    pdfText("Purpose", isHeader: true),
                     pdfText("Outcome", isHeader: true),
-                    pdfText("Status", isHeader: true),
-                    pdfText("Reject Reason", isHeader: true),
                   ],
                 ),
                 if (plan.visits.isEmpty)
@@ -411,12 +386,9 @@ class ExpenseReportController extends GetxController {
                   return pw.TableRow(children: [
                     pdfText(getVal(v.name)),
                     pdfText(formatDate(v.visitDate)),
-                    pdfText(formatDate(v.type)),
                     pdfText(v.checkins != null ? formatTime(v.checkins!.checkInTime) : "-"),
                     pdfText(getVal(v.visitPurpose)),
                     pdfText(v.checkins?.outcome ?? "-"),
-                    pdfText(getVals(v.is_approved)),
-                    pdfText(getVal(v.reject_reason)),
                   ]);
                 }).toList(),
               ],

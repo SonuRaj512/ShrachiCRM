@@ -537,14 +537,15 @@ class _ExpenseUpdateScreenState extends State<ExpenseUpdateScreen> {
     );
   }
 
+
   // ================== UI BUILDER ==================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Update ${getAppBarTitle()}",style: TextStyle(color: Colors.white),),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        title: Text("Update ${getAppBarTitle()}",style: TextStyle(color: Colors.white),),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(15),
@@ -597,7 +598,6 @@ class _ExpenseUpdateScreenState extends State<ExpenseUpdateScreen> {
                 ),
               ),
             ),
-            SizedBox(height: 17,),
 
             // SizedBox(
             //   width: double.infinity,
@@ -618,6 +618,7 @@ class _ExpenseUpdateScreenState extends State<ExpenseUpdateScreen> {
       ),
     );
   }
+
   String getAppBarTitle() {
     if (widget.model.type == "conveyance") return "Conveyance";
     if (widget.model.type == "non_conveyance") return "Non-Conveyance";
@@ -714,6 +715,129 @@ class _ExpenseUpdateScreenState extends State<ExpenseUpdateScreen> {
       ],
     );
   }
+  // Widget _buildConveyanceForm() {
+  //   return Column(
+  //     children: [
+  //       TextField(
+  //         controller: _departureTownController,
+  //         decoration: _textDecoration('Departure Town'),
+  //       ),
+  //       const SizedBox(height: 10),
+  //       TextField(
+  //         controller: _departureTimeController,
+  //         readOnly: true,
+  //         decoration: _textDecoration('Departure Time',),
+  //         onTap: () => pickDateTime(_departureTimeController),
+  //       ),
+  //       const SizedBox(height: 10),
+  //       TextField(
+  //         controller: _arrivalTownController,
+  //         decoration: _textDecoration('Arrival Town'),
+  //       ),
+  //       const SizedBox(height: 10),
+  //       TextField(
+  //         controller: _arrivalTimeController,
+  //         readOnly: true,
+  //         decoration: _textDecoration('Arrival Time'),
+  //         onTap: () => pickDateTime(_arrivalTimeController),
+  //       ),
+  //       const SizedBox(height: 10),
+  //
+  //       // Mode of Travel Dropdown (Removed Obx from here)
+  //       Obx(() {
+  //         return Column(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             GestureDetector(
+  //               onTap: () {}, // dropdown automatically open hoga
+  //               child: Container(
+  //                 padding: const EdgeInsets.symmetric(
+  //                   horizontal: 14,
+  //                   vertical: 4,
+  //                 ),
+  //                 decoration: BoxDecoration(
+  //                   color: Colors.white,
+  //                   borderRadius: BorderRadius.circular(10),
+  //                   border: Border.all(
+  //                     color: Colors.grey.shade400,
+  //                     width: 1,
+  //                   ),
+  //                   boxShadow: [
+  //                     BoxShadow(
+  //                       color: Colors.black12,
+  //                       blurRadius: 3,
+  //                       offset: Offset(0, 1),
+  //                     ),
+  //                   ],
+  //                 ),
+  //                 child: Row(
+  //                   children: [
+  //                     // ⬅ LEFT SIDE Searchable Dropdown
+  //                     Expanded(
+  //                       child: SearchableDropdown(
+  //                         items: conveyance.travelModes,
+  //                         itemLabel: (item) => item,
+  //                         selectedItem: selectedMode,
+  //                         onChanged: (value) {
+  //                           setState(() {
+  //                             selectedMode = value;
+  //                             errors.remove('modeOfTravel');
+  //                           });
+  //                         },
+  //                         hintText:
+  //                         conveyance.isLoading.value
+  //                             ? "Loading..."
+  //                             : "Select Travel Mode",
+  //                         expand: true,
+  //                       ),
+  //                     ),
+  //
+  //                     // ➡ RIGHT SIDE Dropdown Icon
+  //                     Container(
+  //                       padding: const EdgeInsets.only(left: 6),
+  //                       child: Icon(
+  //                         Icons.keyboard_arrow_down_rounded,
+  //                         size: 26,
+  //                         color: Colors.grey.shade700,
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ),
+  //
+  //             // ⚠ Error Text
+  //             if (errors['modeOfTravel'] != null)
+  //               Padding(
+  //                 padding: const EdgeInsets.only(top: 6, left: 4),
+  //                 child: Text(
+  //                   errors['modeOfTravel']!,
+  //                   style: const TextStyle(
+  //                     color: Colors.red,
+  //                     fontSize: 12,
+  //                   ),
+  //                 ),
+  //               ),
+  //           ],
+  //         );
+  //       }),
+  //       const SizedBox(height: 10),
+  //       TextField(
+  //         controller: _amountController,
+  //         keyboardType: TextInputType.number,
+  //         decoration: _textDecoration('Fare Rs.'),
+  //       ),
+  //       const SizedBox(height: 10),
+  //       TextField(
+  //         controller: _commentController,
+  //         decoration: _textDecoration('Comment (Optional)'),
+  //       ),
+  //     ],
+  //   );
+  // }
+
+  // ================== LOCAL CONVEYANCE FORM ==================
+// ================== LOCAL CONVEYANCE FORM ==================
   Widget _buildLocalConveyanceForm() {
     return Column(
       children: [

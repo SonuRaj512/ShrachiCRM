@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
-import 'package:shrachi/api/ProfileController/profile_controller.dart';
+import 'package:shrachi/api/profile_controller.dart';
 import 'package:shrachi/views/screens/attendance/attendance.dart';
 import 'package:shrachi/views/screens/checkins/checkins_search.dart';
 import 'package:shrachi/views/screens/holiday/calender.dart';
@@ -121,6 +121,38 @@ class _AuthenticatedLayoutState extends State<AuthenticatedLayout> {
                   );
                 },
               ),
+              // ListTile(
+              //   leading: const Icon(
+              //     Icons.report,
+              //     color: Colors.black,
+              //   ),
+              //   title: const Text(
+              //     "Expense Report",
+              //     style: TextStyle(color: Colors.black),
+              //   ),
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (context) => ExpenseReportScreen(tourId : "60")),
+              //     );
+              //   },
+              // ),
+              // ListTile(
+              //   leading: const Icon(
+              //     Icons.event_available_outlined,
+              //     color: Colors.black,
+              //   ),
+              //   title: const Text(
+              //     "Leaves",
+              //     style: TextStyle(color: Colors.black),
+              //   ),
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (context) => LeavesList()),
+              //     );
+              //   },
+              // ),
               ListTile(
                 leading: const Icon(
                   Ionicons.calendar_number,

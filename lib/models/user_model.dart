@@ -4,6 +4,7 @@
 //   final String? employeeCode;
 //   final String email;
 //   final String? address;
+//   final String? state;
 //   final String? phone;
 //   final String? lat;
 //   final String? lng;
@@ -22,6 +23,7 @@
 //     this.employeeCode,
 //     required this.email,
 //     this.address,
+//     this.state,
 //     required this.phone,
 //     this.lat,
 //     this.lng,
@@ -41,10 +43,12 @@
 //     email: json['email'],
 //     isEdited: json['sale_people_info']['is_edited'] ?? false,
 //     address: json['sale_people_info']['address'],
+//     //state: json['sale_people_info']['state'],
 //     phone: json['sale_people_info']['phone'],
 //     lat: json['sale_people_info']['lat'],
 //     lng: json['sale_people_info']['lng'],
 //     //designation: json['sale_people']['designation_name'],
+//     state:json['sale_people_info']?['designation']?['state'] ?? 'N/A',
 //     designation:json['sale_people_info']?['designation']?['designation_name'] ?? 'N/A',
 //     zone_code: json['sale_people_info']?['zone_assign']?['zone_code'] ?? 'Nil', // 👈 check spelling
 //     state_code: json['sale_people_info']?['zone_assign']?['state_code'] ?? 'Nil', // 👈 check spelling

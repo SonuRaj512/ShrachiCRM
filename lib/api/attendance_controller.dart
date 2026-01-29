@@ -898,8 +898,6 @@ class AttendanceController extends GetxController {
   final isClockOutLoading = false.obs;
   final isBreakLoading = false.obs;
   final attendanceList = <AttendanceModel>[].obs;
-  RxBool detailLoading = false.obs;
-  Rx<AttendanceModel?> attendanceDetail = Rx<AttendanceModel?>(null);
 
   static const _prefKeyLastAutoClockOut = "lastAutoClockOut";
   static const _prefKeyIsClockedIn = "isClockedIn";
@@ -1491,30 +1489,6 @@ class AttendanceController extends GetxController {
       debugPrint("getAllAttendance error: $e");
     } finally {
       isLoading.value = false;
-    }
-  }
-
-  Future<void> getAttendanceById(int id) async {
-    try {
-      detailLoading.value = true;
-      final token = await getToken();
-
-      final res = await http.get(
-        Uri.parse('$baseUrl$allAttendance/$id'), // 👈 ID BASED API
-        headers: {
-          "Authorization": "Bearer $token",
-        },
-      );
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        attendanceDetail.value =
-            AttendanceModel.fromJson(data['data']);
-      }
-    } catch (e) {
-      debugPrint("Attendance detail error: $e");
-    } finally {
-      detailLoading.value = false;
     }
   }
 

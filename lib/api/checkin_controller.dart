@@ -32,6 +32,9 @@ class CheckinController extends GetxController {
     return prefs.getString("access_token") ?? "";
   }
   ///this code is direct api calling and internet
+
+
+
   // Future checkInVisit({
   //   required String Type,
   //   required double lat,
@@ -98,7 +101,6 @@ class CheckinController extends GetxController {
   //           startDate: startDate,
   //         ));
   //       }
-  //       trackingController.startLocationUpdates();
   //     }
   //   } catch (e, s) {
   //     debugPrint(e.toString());
@@ -107,111 +109,30 @@ class CheckinController extends GetxController {
   //     isLoading.value = false;
   //   }
   // }
-  Future checkInVisit({
-    required String Type,
-    required double lat,
-    required double lng,
-    required int tourPlanId,
-    required int visitId,
-    required bool hasCheckin,
-    bool? islatestcheck,
-    required DateTime startDate,
-  })
-  async {
-    try {
-      /// 🔹 SAME AS CODE 1
-      if (hasCheckin) {
-        Get.to(() => ExpenseList(
-          tourPlanId: tourPlanId,
-          visitId: visitId,
-          startDate: startDate,
-        ));
-        return;
-      }
-
-      isLoading.value = true;
-
-      /// 🔹 ADDED FROM CODE 2 (GPS + Permission handling)
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        await Geolocator.openLocationSettings();
-        throw Exception("Location services are disabled.");
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw Exception("Location permissions are denied.");
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception("Location permissions are permanently denied.");
-      }
-
-      /// 🔹 CODE 1 location fetch (kept)
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-      );
-
-      final token = await getToken();
-
-      /// 🔹 SAME API CALL (CODE 1)
-      final res = await http.post(
-        Uri.parse('$baseUrl$startjounery'),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({
-          'checkin_lat': position.latitude,
-          'checkin_lng': position.longitude,
-          'tour_plan_id': tourPlanId,
-          'visit_id': visitId,
-        }),
-      );
-
-      final body = jsonDecode(res.body);
-      debugPrint("Check-in response => $body");
-
-      if (body['success'] == true) {
-
-        /// 🔹 ADDED FROM CODE 2 (attendance)
-        if (!attendanceController.isClockedIn.value) {
-          attendanceController.clockIn();
-        }
-
-        /// 🔹 SAME NAVIGATION LOGIC (CODE 1)
-        if (lat == 0.0 || lng == 0.0) {
-          Get.off(() => CheckinNoMap_Screen(
-            tourPlanId: tourPlanId,
-            visitId: visitId,
-            Type: Type,
-            StartDate: startDate,
-          ));
-        } else {
-          Get.off(() => CheckinsMap(
-            tourPlanId: tourPlanId,
-            visitId: visitId,
-            coordinate: LatLng(lat, lng),
-            Type: Type,
-            islatestcheck: islatestcheck,
-            startDate: startDate,
-          ));
-        }
-
-        /// 🔥 LIVE TRACKING (SAME IN BOTH)
-        trackingController.startLocationUpdates();
-      }
-    } catch (e, stack) {
-      debugPrint("Check-in error => $e");
-      debugPrint(stack.toString());
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
+  // Future<bool> submitVisitRemark({required int visitId, required String reason,}) async {
+  //   try {
+  //     isLoading.value = true;
+  //
+  //     final response = await http.post(
+  //       Uri.parse("${baseUrl}visit-rsn/$visitId"),
+  //       body: {"reject_reason": reason},
+  //     );
+  //
+  //     isLoading.value = false;
+  //
+  //     if (response.statusCode == 200 || response.statusCode == 201) {
+  //       return true;
+  //     } else {
+  //       print("❌ API failed: ${response.body}");
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     isLoading.value = false;
+  //     print("⚠️ Error submitting remark: $e");
+  //     return false;
+  //   }
+  // }
+  ///this code is api hit in internet and no internet working localdatabase
   // Future checkInVisit({
   //   required String Type,
   //   required double lat,
@@ -274,6 +195,13 @@ class CheckinController extends GetxController {
   //       if (!attendanceController.isClockedIn.value) {
   //         attendanceController.clockIn();
   //       }
+  //       // Get.off(
+  //       //   () => CheckinsMap(
+  //       //     tourPlanId: tourPlanId,
+  //       //     visitId: visitId,
+  //       //     coordinate: LatLng(lat, lng),
+  //       //   ),
+  //       // );
   //       /// ✅ If lat/lng null or 0 → navigate without destination
   //       if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
   //         print("Data If part me ja raha hai");
@@ -312,30 +240,150 @@ class CheckinController extends GetxController {
   //     isLoading.value = false;
   //   }
   // }
-  Future<bool> submitVisitRemark({required int visitId, required String reason,}) async {
+  Future checkInVisit({
+    required String Type,
+    required double lat,
+    required double lng,
+    required int tourPlanId,
+    required int visitId,
+    required bool hasCheckin,
+    bool? islatestcheck,
+    required DateTime startDate,
+  })
+  async {
     try {
+      // 🔹 Already checked-in
+      if (hasCheckin) {
+        Get.to(() => ExpenseList(
+          tourPlanId: tourPlanId,
+          visitId: visitId,
+          startDate: startDate,
+        ));
+        return;
+      }
+
       isLoading.value = true;
 
-      final response = await http.post(
-        Uri.parse("${baseUrl}visit-rsn/$visitId"),
-        body: {"reject_reason": reason},
+      final online = await hasInternet();
+
+      // ================= OFFLINE MODE =================
+      if (!online) {
+        await DatabaseHelper.instance.addToSyncQueue(
+          "CHECKIN",
+          visitId,
+          {
+            "tour_plan_id": tourPlanId,
+            "visit_id": visitId,
+            "lat": lat,
+            "lng": lng,
+            "type": Type,
+            "start_date": startDate.toIso8601String(),
+          },
+        );
+
+        // ✅ Clock-in locally
+        if (!attendanceController.isClockedIn.value) {
+          attendanceController.clockIn();
+        }
+
+        // ✅ START LIVE TRACKING (OFFLINE ALSO)
+        trackingController.startLocationUpdates();
+
+        Get.snackbar(
+          "Offline",
+          "Check-in saved. Live tracking started.",
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+
+        // Navigation
+        if (lat == 0.0 || lng == 0.0) {
+          Get.off(() => CheckinNoMap_Screen(
+            tourPlanId: tourPlanId,
+            visitId: visitId,
+            Type: Type,
+            StartDate: startDate,
+          ));
+        } else {
+          Get.off(() => CheckinsMap(
+            tourPlanId: tourPlanId,
+            visitId: visitId,
+            coordinate: LatLng(lat, lng),
+            Type: Type,
+            islatestcheck: islatestcheck,
+            startDate: startDate,
+          ));
+        }
+
+        return;
+      }
+
+      // ================= ONLINE MODE =================
+      bool allowed = await LocationHelper.ensurePermission();
+      if (!allowed) return;
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 0,
+        ),
       );
 
-      isLoading.value = false;
+      final token = await getToken();
+      final res = await http.post(
+        Uri.parse('$baseUrl$startjounery'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          'checkin_lat': position.latitude,
+          'checkin_lng': position.longitude,
+          'tour_plan_id': tourPlanId,
+          'visit_id': visitId,
+        }),
+      );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
-      } else {
-        print("❌ API failed: ${response.body}");
-        return false;
+      final body = jsonDecode(res.body);
+
+      if (body['success'] == true) {
+
+        // ✅ Attendance clock-in
+        if (!attendanceController.isClockedIn.value) {
+          attendanceController.clockIn();
+        }
+
+        // ✅ START LIVE TRACKING (IMPORTANT)
+        trackingController.startLocationUpdates();
+
+        // Navigation
+        if (lat == 0.0 || lng == 0.0) {
+          Get.off(() => CheckinNoMap_Screen(
+            tourPlanId: tourPlanId,
+            visitId: visitId,
+            Type: Type,
+            StartDate: startDate,
+          ));
+        } else {
+          Get.off(() => CheckinsMap(
+            tourPlanId: tourPlanId,
+            visitId: visitId,
+            coordinate: LatLng(lat, lng),
+            Type: Type,
+            islatestcheck: islatestcheck,
+            startDate: startDate,
+          ));
+        }
       }
-    } catch (e) {
+    } catch (e, s) {
+      debugPrint("CHECKIN ERROR: $e");
+      debugPrint(s.toString());
+    } finally {
       isLoading.value = false;
-      print("⚠️ Error submitting remark: $e");
-      return false;
     }
   }
-  ///this code is api hit in internet and no internet working localdatabase
+
+  ///es code me koi live trackin nahi ho raha hai
   // Future checkInVisit({
   //   required String Type,
   //   required double lat,
@@ -398,6 +446,7 @@ class CheckinController extends GetxController {
   //
   //       return;
   //     }
+  //
   //     // ================= ONLINE MODE =================
   //     bool allowed = await LocationHelper.ensurePermission();
   //     if (!allowed) return;
@@ -443,179 +492,41 @@ class CheckinController extends GetxController {
   //       }
   //     }
   //   } catch (e, s) {
-  //     debugPrint("CheckIn Catch Error EE:{e.toString()}");
-  //     debugPrint("CheckIn Catch Error SS:${s.toString()}");
+  //     debugPrint(e.toString());
+  //     debugPrint(s.toString());
   //   } finally {
   //     isLoading.value = false; // 🔐 Loader always stops
   //   }
   // }
-  // Future<bool> submitVisitRemark({required int visitId, required String reason,}) async {
-  //   try {
-  //     isLoading.value = true;
-  //
-  //     final online = await hasInternet();
-  //
-  //     // OFFLINE
-  //     if (!online) {
-  //       await DatabaseHelper.instance.addToSyncQueue(
-  //         "VISIT_REMARK",
-  //         visitId,
-  //         {
-  //           "visit_id": visitId,
-  //           "reject_reason": reason,
-  //         },
-  //       );
-  //       return true;
-  //     }
-  //
-  //     // ONLINE
-  //     final response = await http.post(
-  //       Uri.parse("${baseUrl}visit-rsn/$visitId"),
-  //       body: {"reject_reason": reason},
-  //     );
-  //
-  //     return response.statusCode == 200 || response.statusCode == 201;
-  //   } catch (e) {
-  //     return false;
-  //   } finally {
-  //     isLoading.value = false;
-  //   }
-  // }
+  Future<bool> submitVisitRemark({required int visitId, required String reason,}) async {
+    try {
+      isLoading.value = true;
 
-  ///CheckIn Api
-  // Future<bool> checkIncontroller({
-  //   required double lat,
-  //   required double lng,
-  //   required int tourPlanId,
-  //   required int visitId,
-  //   required String convinceType,
-  //   double? checkIn_distance,
-  //   String? convinceText,
-  // })
-  // async {
-  //   try {
-  //     isLoading.value = true;
-  //     print("convinceType value1: $convinceType");
-  //     //print("convinceType value: $convinceText");
-  //     final token = await getToken();
-  //     final url = Uri.parse("$baseUrl$checkIn");
-  //
-  //     final body = {
-  //       "checkin_at_dealer_lat": lat.toString(),
-  //       "checkin_at_dealer_lng": lng.toString(),
-  //       "tour_plan_id": tourPlanId.toString(),
-  //       "visit_id": visitId.toString(),
-  //       "checkIn_distance": checkIn_distance.toString()
-  //     };
-  //
-  //     // ⭐ Jab user non-convince popup submit kare tab ye values jayengi
-  //     print("convinceType value2: $checkIn_distance");
-  //     if (convinceType.isNotEmpty) {
-  //       body["type"] = convinceType ?? '';
-  //       body["convince_text"] = convinceText ?? '';
-  //     }
-  //
-  //     final response = await http.put(
-  //       url,
-  //       headers: {
-  //         "Accept": "application/json",
-  //         "Authorization": "Bearer $token",
-  //       },
-  //       body: body,
-  //     );
-  //
-  //     final responseData = jsonDecode(response.body);
-  //
-  //     print("checkin api response: $responseData");
-  //     if (response.statusCode == 200 && responseData["success"] == true) {
-  //       Get.snackbar(
-  //         "Success",
-  //         responseData["message"] ?? "Check-In successfully completed",
-  //         backgroundColor: Colors.green,
-  //         colorText: Colors.white,
-  //       );
-  //       return true;  // success
-  //     }
-  //     else {
-  //       return false; // fail → popup open hoga
-  //     }
-  //   } catch (e) {
-  //     Get.snackbar("Error2222", e.toString());
-  //     return false;
-  //   } finally {
-  //     isLoading.value = false;
-  //   }
-  // }
-  ///CheckOut Api
-  // Future CheckoutController({
-  //   required double lat,
-  //   required double lng,
-  //   required int tourPlanId,
-  //   required int visitId,
-  //   String? additionalInfo,
-  //   required List images,
-  //   required DateTime startDate,
-  // })
-  // async {
-  //   try {
-  //     isLoading.value = true;
-  //     final token = await getToken();
-  //     var req = http.MultipartRequest(
-  //       'POST',
-  //       Uri.parse('$baseUrl$checkInUpdate'),
-  //     );
-  //
-  //     req.headers.addAll({
-  //       "Authorization": "Bearer $token",
-  //       "Accept": "application/json",
-  //     });
-  //     req.fields.addAll({
-  //       'tour_plan_id': tourPlanId.toString(),
-  //       'visit_id': visitId.toString(),
-  //       'comments': additionalInfo ?? '',
-  //       'checkout_lat': lat.toString(),
-  //       'checkout_lng': lng.toString(),
-  //       // ❌ Remove 'images[]': images.f
-  //     });
-  //
-  //     for (var img in images) {
-  //       req.files.add(await http.MultipartFile.fromPath('images[]', img.path));
-  //     }
-  //     var streamedResponse = await req.send();
-  //     final res = await http.Response.fromStream(streamedResponse);
-  //
-  //     final body = jsonDecode(res.body);
-  //     print("Checkin body response : $body");
-  //     if (body['success'] == true) {
-  //       // ✅ Data successfully inserted in API
-  //       Get.off(() => ExpenseList(tourPlanId: tourPlanId, visitId: visitId, startDate: startDate,));
-  //       Get.snackbar(
-  //         "Success",
-  //         "Check-Out successfully",
-  //         backgroundColor: Colors.green,
-  //         colorText: Colors.white,
-  //       );
-  //     } else {
-  //       Get.snackbar(
-  //         "Error",
-  //         body['message'] ?? "Something went wrong!",
-  //         backgroundColor: Colors.red,
-  //         colorText: Colors.white,
-  //       );
-  //     }
-  //   } catch (e, stack) {
-  //     debugPrint("Check-in Error: $e");
-  //     debugPrint(stack.toString());
-  //     Get.snackbar(
-  //       "Error",
-  //       "Failed to save check-in details.",
-  //       backgroundColor: Colors.red,
-  //       colorText: Colors.white,
-  //     );
-  //   } finally {
-  //     isLoading.value = false;
-  //   }
-  // }
+      final online = await hasInternet();
+
+      // OFFLINE
+      if (!online) {
+        await DatabaseHelper.instance.addToSyncQueue(
+          "VISIT_REMARK",
+          visitId,
+          {
+            "visit_id": visitId,
+            "reject_reason": reason,
+          },
+        );
+        return true;
+      }
+
+      print("Cancel CheckIn Visit Id: $visitId");
+      // ONLINE
+      final response = await http.post(Uri.parse("$baseUrl$checkinCancel/$visitId"), body: {"reject_reason": reason},);
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   /// Dealer Check-In (Main Check-In)
   Future<bool> checkIncontroller({
@@ -627,7 +538,6 @@ class CheckinController extends GetxController {
     String? convinceText,
     double? checkIn_distance,
     bool isSync = false,
-    bool? isConfirmedAddress,
   })
   async {
     try {
@@ -643,7 +553,6 @@ class CheckinController extends GetxController {
           convinceType: convinceType,
           convinceText: convinceText,
           checkIn_distance: checkIn_distance,
-          isConfirmedAddress: isConfirmedAddress ?? false,
         );
 
         Get.snackbar(
@@ -670,8 +579,6 @@ class CheckinController extends GetxController {
         "checkIn_distance": (checkIn_distance ?? 0.0).toString(),
         "type": convinceType,
         "convince_text": convinceText ?? '',
-        "isconfirmed_address": (isConfirmedAddress ?? false).toString(),
-        //"isconfirmed_address": isConfirmedAddress ?? false,
       };
 
       final response = await http.put(
@@ -684,11 +591,10 @@ class CheckinController extends GetxController {
       );
 
       final responseData = jsonDecode(response.body);
-      //print("CheckIn Distance11: $checkIn_distance");
-      print("CheckIn body response $body");
+
       if (response.statusCode == 200 && responseData["success"] == true) {
         if (!isSync) {
-          Get.snackbar("Success", "Check-In successfully", backgroundColor: Colors.green, colorText: Colors.white);
+          Get.snackbar("Success", "Check-In successful", backgroundColor: Colors.green, colorText: Colors.white);
         }
         return true;
       }
@@ -771,7 +677,7 @@ class CheckinController extends GetxController {
 
       if (response.statusCode == 200 && body['success'] == true) {
         if (!isSync) {
-          Get.snackbar("Success", "Check-Out successfully", backgroundColor: Colors.green, colorText: Colors.white);
+          Get.snackbar("Success", "Check-Out successful", backgroundColor: Colors.green, colorText: Colors.white);
           Get.off(() => ExpenseList(tourPlanId: tourPlanId, visitId: visitId, startDate: startDate));
         }
         return true;
@@ -790,8 +696,7 @@ class CheckinController extends GetxController {
     }
   }
 
-  // End rev sonu
-  Future<void> OutComeVisit({
+  Future<void> checkOutVisit({
     required int tourPlanId,
     required int visitId,
     required String followupDate,
@@ -812,8 +717,8 @@ class CheckinController extends GetxController {
         'tour_plan_id': tourPlanId,
         'visit_id': visitId,
         'followup_date': followupDate,
-        'next_followup_date': nextFollowupDate,
-        'outcome': outcome,
+        'next_followup_date': nextFollowupDate, // may be null
+        'outcome': outcome, // 🔹 Only add lead_status_id if available
         'lead_status_id': leadStatus != null ? leadStatus.id : null,
       };
 
@@ -835,7 +740,7 @@ class CheckinController extends GetxController {
           Get.off(() => ExpenseList(tourPlanId: tourPlanId, visitId: visitId, startDate: startDate,));
           Get.snackbar(
             "Success",
-            "Outcome Successfully",
+            "Checkout Successful",
             backgroundColor: const Color(0xFF4CAF50),
             colorText: Colors.white,
           );
@@ -899,5 +804,3 @@ class CheckinController extends GetxController {
     }
   }
 }
-
-

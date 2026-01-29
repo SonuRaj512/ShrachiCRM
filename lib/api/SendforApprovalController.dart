@@ -230,6 +230,126 @@ class SendForApprovalController extends GetxController {
       isLoading(false);
     }
   }
+
+  // Future<void> fetchTourPlan({required int id}) async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final token = prefs.getString("access_token") ?? "";
+  //
+  //   try {
+  //     isLoading.value = true;
+  //
+  //     final url = Uri.parse("${baseUrl}tourplans/$id");
+  //     final response = await http.get(
+  //       url,
+  //       headers: {
+  //         "Accept": "application/json",
+  //         "Authorization": "Bearer $token",
+  //       },
+  //     );
+  //
+  //     print("SendForApprovalController ${response.body}");
+  //
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //
+  //       tourPlan.value = TourPlanModel.fromJson(data['tourPlans']);
+  //
+  //       // 🔥 STATUS CHECK (button hide if already sent)
+  //       if (tourPlan.value?.status?.toLowerCase() == "send for approval") {
+  //         isAlreadySent.value = true;
+  //       }
+  //     } else {
+  //       Get.snackbar("Error", "Failed to load tour plan");
+  //     }
+  //   } catch (e) {
+  //     Get.snackbar("Error", e.toString());
+  //   } finally {
+  //     isLoading.value = false;
+  //   }
+  // }
+  //
+  // Future<void> sendForApproval(int tourPlanId) async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final token = prefs.getString("access_token") ?? "";
+  //   final tour = tourPlan.value;
+  //
+  //   // 🔥 BLOCK IF ALREADY SENT
+  //   if (tour?.status?.toLowerCase() == "send for approval") {
+  //     Get.snackbar(
+  //       "Already Sent",
+  //       "This tour plan is already sent for approval.",
+  //       backgroundColor: Colors.orange,
+  //       colorText: Colors.white,
+  //       snackPosition: SnackPosition.BOTTOM,
+  //     );
+  //     return;
+  //   }
+  //
+  //   // show color highlight on UI
+  //   showApprovalColors.value = true;
+  //
+  //   final invalidVisits = tour!.visits.where((v) =>
+  //   v.checkin == null || v.checkin!.outcome == null || v.expenses.isEmpty).toList();
+  //
+  //   tourPlan.refresh();
+  //
+  //   if (invalidVisits.isNotEmpty) {
+  //     Get.snackbar(
+  //       "Message",
+  //       "Please complete Outcome and Expense for all visits before sending.",
+  //       backgroundColor: Colors.redAccent,
+  //       colorText: Colors.white,
+  //       snackPosition: SnackPosition.BOTTOM,
+  //     );
+  //     return;
+  //   }
+  //
+  //   try {
+  //     isLoading(true);
+  //
+  //     final url = "${baseUrl}expenses/approve-bulk/$tourPlanId";
+  //     final response = await http.post(
+  //       Uri.parse(url),
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Accept': 'application/json',
+  //         'Authorization': 'Bearer $token',
+  //       },
+  //     );
+  //
+  //     print("SendForApproval Post ${response.body}");
+  //
+  //     if (response.statusCode == 200) {
+  //       // 🔥 UPDATE STATUS LOCALLY
+  //       tourPlan.value?.status = "send for approval";
+  //       isAlreadySent.value = true;
+  //
+  //       Get.snackbar(
+  //         "Success",
+  //         "Tour sent for approval successfully!",
+  //         backgroundColor: Colors.green,
+  //         colorText: Colors.white,
+  //       );
+  //     } else {
+  //       Get.snackbar(
+  //         "Error",
+  //         "Failed to send for approval.",
+  //         backgroundColor: Colors.red,
+  //         colorText: Colors.white,
+  //       );
+  //     }
+  //   } catch (e) {
+  //     Get.snackbar(
+  //       "Error",
+  //       e.toString(),
+  //       backgroundColor: Colors.redAccent,
+  //       colorText: Colors.white,
+  //     );
+  //   } finally {
+  //     isLoading(false);
+  //   }
+  // }
+
   void navigateToEditPage({required int visitId, required int tourPlanId, required DateTime? startDate}) {
     Get.to(() => ExpenseList(
       tourPlanId: tourPlanId,

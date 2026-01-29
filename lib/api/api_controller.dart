@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:shrachi/api/api_const.dart';
 import 'package:shrachi/api/attendance_controller.dart';
 import 'package:shrachi/views/screens/auth/login.dart';
+import '../OfflineDatabase/ConnectivityService.dart' as ConnectivityService show hasInternet;
 import '../OfflineDatabase/DBHelper.dart';
 import '../models/TourPlanModel/CreateTourPlanModel/DealerModel/DealerModel.dart';
 import '../models/TourPlanModel/CreateTourPlanModel/HoModel.dart';
@@ -19,12 +20,11 @@ import '../models/TourPlanModel/CreateTourPlanModel/TourPlanRequestModel.dart';
 import '../models/TourPlanModel/CreateTourPlanModel/WharehouseModel.dart';
 import '../models/TourPlanModel/FetchTourPlanModel/FetchTourPlaneModel.dart';
 import '../models/TourPlanModel/lead_status_model.dart';
-import '../utils/internet_helper.dart' as ConnectivityService;
 import '../views/screens/CustomErrorMessage/CustomeErrorMessage.dart';
 import 'api_hendler.dart';
 import 'api_services.dart';
 
-class ApiController extends GetxController with WidgetsBindingObserver {
+class ApiController extends GetxController {
   final _apiHelper = ApiHandler();
   var isLoading = false.obs;
   var dealers = <Dealer>[].obs;
@@ -49,8 +49,6 @@ class ApiController extends GetxController with WidgetsBindingObserver {
   // 🔹 Leads
   var leads = <Visit>[].obs;
   var isLoadingLeads = false.obs;
-  Timer? _midnightTimer;
-
 
   TextEditingController searchController = TextEditingController();
 
@@ -69,12 +67,166 @@ class ApiController extends GetxController with WidgetsBindingObserver {
     fetchLeadStatuses();
     fetchLeadsForSearch();
     fetchBusinesses();
-    monitorInternet();
+    monitorInternet(); // Start listening for internet status
+
+    // Search listener add karo
     searchController.addListener(() {
       filterSearchResults(searchController.text);
     });
   }
-
+  // Future<void> loginUser(String email, String password) async {
+  //
+  //   try {
+  //     isLoading.value = true;
+  //     final response = await http.post(
+  //       Uri.parse("https://btlsalescrm.cloud/api/login"),
+  //       body: {"email": email, "password": password},
+  //     );
+  //
+  //     var data = jsonDecode(response.body);
+  //
+  //     if (response.statusCode == 200) {
+  //       // SUCCESS POPUP
+  //       showTopPopup("Success", data["message"] ?? "Login Successful", Colors.green);
+  //     } else {
+  //       // ERROR POPUP
+  //       showTopPopup("Error", data["message"] ?? "Invalid Credentials", Colors.red);
+  //     }
+  //   } catch (e) {
+  //     showTopPopup("Error", "Check your internet connection", Colors.orange);
+  //   } finally {
+  //     isLoading.value = false;
+  //   }
+  // }
+  // YEH FUNCTION TOP SE POPUP DIKHAYEGA (NO ERROR METHOD)
+  // void showTopPopup(String title, String message, Color color) {
+  //   final overlay = Get.key.currentState?.overlay; // Direct overlay access
+  //   if (overlay == null) return;
+  //
+  //   late OverlayEntry overlayEntry;
+  //   overlayEntry = OverlayEntry(
+  //     builder: (context) => Positioned(
+  //       top: MediaQuery.of(context).padding.top + 10, // iPhone Notch ke niche
+  //       left: 20,
+  //       right: 20,
+  //       child: Material(
+  //         color: Colors.transparent,
+  //         child: Container(
+  //           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+  //           decoration: BoxDecoration(
+  //             color: color,
+  //             borderRadius: BorderRadius.circular(12),
+  //             boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 10)],
+  //           ),
+  //           child: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+  //               const SizedBox(height: 4),
+  //               Text(message, style: const TextStyle(color: Colors.white, fontSize: 14)),
+  //             ],
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  //
+  //   // Overlay mein insert karein
+  //   overlay.insert(overlayEntry);
+  //
+  //   // 3 second baad automatic hata dein
+  //   Future.delayed(const Duration(seconds: 3), () {
+  //     overlayEntry.remove();
+  //   });
+  // }
+  //
+  //
+  // Future<void> login(String email, String password, String UId) async {
+  //   if (email.isEmpty || password.isEmpty || UId.isEmpty) {
+  //     Get.snackbar(
+  //       "Error",
+  //       "Please enter email and password",
+  //       backgroundColor: Colors.red,
+  //       colorText: Colors.white,
+  //     );
+  //     return;
+  //   }
+  //
+  //   try {
+  //     isLoading.value = true;
+  //
+  //     var url = Uri.parse("$baseUrl$loginapi");
+  //
+  //     var response = await http
+  //         .post(
+  //       url,
+  //       body: {
+  //         "email": email,
+  //         "password": password,
+  //         "device_unique_id": UId,
+  //       },
+  //     )
+  //         .timeout(const Duration(seconds: 20)); // ⏱ timeout added
+  //
+  //     var data = jsonDecode(response.body);
+  //
+  //     if (response.statusCode == 200 && data["token"] != null) {
+  //       SharedPreferences prefs = await SharedPreferences.getInstance();
+  //       await prefs.setString("access_token", data["token"]);
+  //
+  //       // Get.snackbar(
+  //       //   "Success",
+  //       //   data["message"] ?? "Login successful",
+  //       //   backgroundColor: Colors.green,
+  //       //   colorText: Colors.white,
+  //       // );
+  //       showTopPopup("Success", data["message"] ?? "Login Successful", Colors.green);
+  //       Get.offAllNamed("/Dasboard");
+  //     } else {
+  //       Get.snackbar(
+  //         "Error",
+  //         data["message"] ?? "Invalid credentials",
+  //         backgroundColor: Colors.red,
+  //         colorText: Colors.white,
+  //       );
+  //     }
+  //   }
+  //
+  //   // ❌ NO INTERNET
+  //   on SocketException {
+  //     Get.snackbar(
+  //       "No Internet",
+  //       "Please check your internet connection",
+  //       backgroundColor: Colors.red,
+  //       colorText: Colors.white,
+  //       icon: const Icon(Icons.wifi_off, color: Colors.white),
+  //     );
+  //   }
+  //
+  //   // ⏱ SERVER TIMEOUT
+  //   on TimeoutException {
+  //     Get.snackbar(
+  //       "Timeout",
+  //       "Server is taking too long. Try again later",
+  //       backgroundColor: Colors.orange,
+  //       colorText: Colors.white,
+  //     );
+  //   }
+  //
+  //   // ❌ ANY OTHER ERROR
+  //   catch (e) {
+  //     Get.snackbar(
+  //       "Error",
+  //       "Something went wrong. Please try again",
+  //       backgroundColor: Colors.red,
+  //       colorText: Colors.white,
+  //     );
+  //   } finally {
+  //     isLoading.value = false;
+  //   }
+  // }
+  // 1. LOGIN FUNCTION (Updated with Top Popup)
   Future<void> loginUser(String email, String password, String UId) async {
     // Validation Check
     if (email.isEmpty || password.isEmpty || UId.isEmpty) {
@@ -97,31 +249,20 @@ class ApiController extends GetxController with WidgetsBindingObserver {
       ).timeout(const Duration(seconds: 20));
 
       var data = jsonDecode(response.body);
-      // 🔹 API MESSAGE HANDLING (ADD THIS)
-      String apiMessage = data["message"] ?? data["error"] ?? "";
+
       if (response.statusCode == 200 && data["token"] != null) {
         // Save Token
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString("access_token", data["token"]);
-        String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        await prefs.setString("last_session_date", today);
-        print("Login successful! Session date saved: $today");
+
         // SUCCESS POPUP
-        showTopPopup(
-          "Success", apiMessage.isNotEmpty
-              ? apiMessage // <-- API MESSAGE FIRST
-              : "Login successfully", // <-- FALLBACK STATIC MESSAGE
-          Colors.green,
-        );
+        showTopPopup("Success", data["message"] ?? "Login successful", Colors.green);
+
         // Navigate to Dashboard
         Get.offAllNamed("/Dasboard");
       } else {
         // INVALID CREDENTIALS POPUP
-        showTopPopup(
-          "Message",
-          apiMessage.isNotEmpty ? apiMessage : "Invalid credentials",
-          Colors.red,
-        );
+        showTopPopup("Error", data["message"] ?? "Invalid credentials", Colors.red);
       }
     }
     // ❌ NO INTERNET
@@ -139,6 +280,7 @@ class ApiController extends GetxController with WidgetsBindingObserver {
       isLoading.value = false;
     }
   }
+
   Future<void> sendResetLink(String email) async {
     try {
       isLoading.value = true;
@@ -167,6 +309,7 @@ class ApiController extends GetxController with WidgetsBindingObserver {
           backgroundColor: Colors.red, colorText: Colors.white);
     }
   }
+
   Future logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -183,7 +326,6 @@ class ApiController extends GetxController with WidgetsBindingObserver {
           "Authorization": "Bearer $token",
         },
       );
-
       print("Logout Sucessful${res.body}");
       if (res.statusCode == 200) {
         Get.offAll(() => Login());
@@ -421,6 +563,7 @@ class ApiController extends GetxController with WidgetsBindingObserver {
       isLoading.value = false;
     }
   }
+
   // void fetchTourPlans() async {
   //   try {
   //     isLoading(true);
@@ -616,12 +759,5 @@ class ApiController extends GetxController with WidgetsBindingObserver {
     } finally {
       isLoadingLeads.value = false;
     }
-  }
-
-  @override
-  void onClose() {
-    _midnightTimer?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
-    super.onClose();
   }
 }

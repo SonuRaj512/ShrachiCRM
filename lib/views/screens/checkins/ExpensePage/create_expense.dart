@@ -1995,7 +1995,7 @@ import 'package:ionicons/ionicons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shrachi/api/api_const.dart';
 import 'package:shrachi/api/expense_controller.dart';
-import 'package:shrachi/api/ProfileController/profile_controller.dart';
+import 'package:shrachi/api/profile_controller.dart';
 import 'package:shrachi/views/components/searchable_dropdown.dart';
 import 'package:shrachi/views/enums/color_palette.dart';
 import 'package:shrachi/views/enums/responsive.dart';
@@ -2412,8 +2412,6 @@ class _CreateExpenseState extends State<CreateExpense> {
       },
     );
   }
-
-
   InputDecoration _textDecoration(String label) {
     return InputDecoration(
       alignLabelWithHint: true,
@@ -3140,10 +3138,10 @@ class _CreateExpenseState extends State<CreateExpense> {
                       value: value,
                       underline: SizedBox(),
                       iconEnabledColor: enabled ? Colors.black : Colors.grey,
-                      hint: Text(hint, style: TextStyle(color: Colors.grey,fontSize: 14)),
+                      hint: Text(hint, style: TextStyle(color: Colors.black)),
                       items: items.map((e) => DropdownMenuItem(
                       value: e,
-                        child: Text(itemLabel != null ? itemLabel(e) : e,style: TextStyle(fontSize: 14,color: Colors.grey[800]),),
+                        child: Text(itemLabel != null ? itemLabel(e) : e),
                       )).toList(),
                       onChanged: onChanged,
                     ),
@@ -3155,6 +3153,7 @@ class _CreateExpenseState extends State<CreateExpense> {
 
              void validateAndSubmit() {
                errors.clear();
+
               // CATEGORY
               if (NonSelectedCategory == null) {
                 errors['category'] = 'Select category';
@@ -3588,7 +3587,7 @@ class _CreateExpenseState extends State<CreateExpense> {
                         items: [
                           "DA Full Day",
                           "DA Half Day",
-                          //"TA",
+                          "TA",
                           "HOTEL",
                           "Miscellaneous",
                         ],
@@ -3731,7 +3730,7 @@ class _CreateExpenseState extends State<CreateExpense> {
                             TextFormField(
                               controller: flowAmountController,
                               keyboardType: TextInputType.number,
-                              decoration: _textDecoration('Enter Amount',),
+                              decoration: _textDecoration('Enter Amount'),
 
                               onChanged: (value) {
                                 setModalState(() {
@@ -4179,7 +4178,7 @@ class _CreateExpenseState extends State<CreateExpense> {
                         controller: _travelAmountController,
                         keyboardType: TextInputType.number,
                         decoration: _textDecoration(
-                          'Travel Amount (Rs.)',
+                          'Travel Amount',
                         ).copyWith(errorText: errors['travelAmount']),
                       ),
                       const SizedBox(height: 10),
@@ -4699,7 +4698,7 @@ class _ExpenseCardState extends State<ExpenseCard> {
                 const SizedBox(height: 15),
                 Text("Mode Of Travel: ${entryValue['modeOfTravel']}"),
                 const SizedBox(height: 15),
-                Text("Fare ₹ : ${entryValue['amount']}"),
+                Text("Fare Rs.: ₹ ${entryValue['amount']}"),
                 if (entryValue['comment'] != null &&
                     entryValue['comment'].toString().isNotEmpty)
                   const SizedBox(height: 15),

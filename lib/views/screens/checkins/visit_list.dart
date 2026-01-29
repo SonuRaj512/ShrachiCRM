@@ -7,8 +7,6 @@ import 'package:shrachi/views/enums/responsive.dart';
 import 'package:get/get.dart';
 import 'package:shrachi/views/screens/checkins/ExpensePage/expense_list.dart';
 
-import '../multicolor_progressbar_screen.dart';
-
 class VisitList extends StatefulWidget {
   final int tourPlanId;
 
@@ -31,7 +29,7 @@ class _VisitListState extends State<VisitList> {
       context: context,
       initialDate: selectedDate,
       firstDate: startDate ?? DateTime(2020),
-      lastDate: endDate ?? DateTime(2101),
+      lastDate: endDate ?? DateTime(2030),
     );
     if (picked != null && picked != selectedDate) {
       setState(() {
@@ -47,7 +45,6 @@ class _VisitListState extends State<VisitList> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       apiController.fetchTourPlans();
     });
-    print("Visit list Screen : ${selectedDate}");
   }
   void _showPendingRemarkDialog(Visit visit) {
     final TextEditingController remarkController = TextEditingController();
@@ -179,7 +176,7 @@ class _VisitListState extends State<VisitList> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.blueAccent,
+          backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
           title: Obx(() {
             // ✅ Safely find tourPlan by ID
@@ -204,7 +201,8 @@ class _VisitListState extends State<VisitList> {
         body: Align(
           alignment: Alignment.center,
           child: SizedBox(
-            width: Responsive.isSm(context)
+            width:
+                Responsive.isSm(context)
                     ? screenWidth
                     : Responsive.isXl(context)
                     ? screenWidth * 0.60
@@ -216,8 +214,7 @@ class _VisitListState extends State<VisitList> {
                   (tp) => tp.id == widget.tourPlanId,
                 );
                 if (tour == null) {
-                  return const Center(child: MultiColorCircularLoader(size: 40));
-                  //CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
                 if (_dateController.text.isEmpty && tour.visits.isNotEmpty) {
                   _dateController.text = DateFormat(
@@ -286,10 +283,9 @@ class _VisitListState extends State<VisitList> {
                     apiController.isLoading.value
                         ? Expanded(
                           child: Center(
-                            child: MultiColorCircularLoader(size: 40)
-                            // CircularProgressIndicator(
-                            //   color: Colors.green,
-                            // ),
+                            child: CircularProgressIndicator(
+                              color: Colors.green,
+                            ),
                           ),
                         )
                         : Expanded(
@@ -301,12 +297,16 @@ class _VisitListState extends State<VisitList> {
                                     SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final visit = visits[index];
+
                                 // 🔍 Show warning icon condition
                                 final bool showWarningIcon = !visit.isCheckin &&
                                     !visit.hasCheckin &&
                                     (visit.Reject_reason == null || visit.Reject_reason!.isEmpty);
+
                                 // 🔍 Check if visit has cancel reason
-                                final bool hasCancelReason = visit.Reject_reason != null && visit.Reject_reason!.isNotEmpty;
+                                final bool hasCancelReason =
+                                    visit.Reject_reason != null && visit.Reject_reason!.isNotEmpty;
+
                                 return Card(
                                   color: Colors.grey[200],
                                   elevation: 6,
@@ -373,7 +373,7 @@ class _VisitListState extends State<VisitList> {
                                                         : visit.islatestcheck == true
                                                         ? "CheckedIn"       // Priority 2
                                                         : visit.isjourney == true
-                                                        ? "Journey started" // Priority 3
+                                                        ? "Pending" // Priority 3
                                                         : visit.isCheckin == true
                                                         ? ""          // Priority 4
                                                         : "Pending",  // Priority 5
@@ -383,9 +383,9 @@ class _VisitListState extends State<VisitList> {
                                                       color: visit.hasCheckin == true
                                                           ? Colors.green
                                                           : visit.islatestcheck == true
-                                                          ? Colors.orange
-                                                          : visit.isjourney == true
                                                           ? Colors.blue
+                                                          : visit.isjourney == true
+                                                          ? Colors.red
                                                           : Colors.red,
                                                       fontWeight: FontWeight.bold,
                                                     ),
@@ -553,7 +553,8 @@ class _VisitListState extends State<VisitList> {
                               ? Colors.red
                               : selectedVisit!.isCheckin == false
                               ? Colors.blue
-                              : selectedVisit!.isCheckin == true && selectedVisit!.hasCheckin == false
+                              : selectedVisit!.isCheckin == true &&
+                                  selectedVisit!.hasCheckin == false
                               ? Colors.orange
                               : Colors.green,
                       foregroundColor: Colors.white,

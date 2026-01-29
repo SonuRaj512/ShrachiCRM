@@ -763,8 +763,7 @@ class _ShowTourState extends State<ShowTour> {
       }
 
       final url = Uri.parse(
-        '${baseUrl}tour-plans/${widget.tourPlan.id}/approval',
-      );
+          '${baseUrl}tour-plans/${widget.tourPlan.id}/approval');
 
       final response = await http.put(
         url,
@@ -790,19 +789,18 @@ class _ShowTourState extends State<ShowTour> {
         });
 
         // 🔄 Fetch latest data from API
-        controller.fetchTourPlans();
+         controller.fetchTourPlans();
       } else {
         final error = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Failed: ${error['message'] ?? 'Unknown error'}'),
-          ),
+              content: Text('❌ Failed: ${error['message'] ?? 'Unknown error'}')),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
 
     setState(() => _isSubmitting = false);
@@ -816,6 +814,7 @@ class _ShowTourState extends State<ShowTour> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
           title: const Text(
             'Show Tour Plan',
@@ -827,7 +826,6 @@ class _ShowTourState extends State<ShowTour> {
             },
             icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           ),
-          backgroundColor: Colors.blue,
         ),
         body: Container(
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10.0),
@@ -839,10 +837,9 @@ class _ShowTourState extends State<ShowTour> {
               if (statusLower != 'confirmed')
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 400),
-                  child:
-                      _isSubmitted
-                          ? _submittedStatusCard(screenWidth)
-                          : _actionButtons(screenWidth, context),
+                  child: _isSubmitted
+                      ? _submittedStatusCard(screenWidth)
+                      : _actionButtons(screenWidth, context),
                 ),
 
               const SizedBox(height: 10),
@@ -868,9 +865,7 @@ class _ShowTourState extends State<ShowTour> {
                           alignment: Alignment.center,
                           lineStyle: LineStyle(
                             lineLength:
-                                (screenWidth /
-                                    _getStepperSteps(currentStatus).length) -
-                                25,
+                            (screenWidth / _getStepperSteps(currentStatus).length) - 25,
                             lineType: LineType.normal,
                             activeLineColor: Colors.black.withOpacity(0.3),
                             finishedLineColor: Colors.black.withOpacity(0.3),
@@ -900,7 +895,8 @@ class _ShowTourState extends State<ShowTour> {
       children: [
         _modernButton(
           context,
-          icon: _isSubmitting ? Icons.hourglass_top : Ionicons.checkmark_sharp,
+          icon:
+          _isSubmitting ? Icons.hourglass_top : Ionicons.checkmark_sharp,
           label: _isSubmitting ? 'Submitting...' : 'Send For Approval',
           color: _isSubmitting ? Colors.grey : ColorPalette.seaGreen600,
           onPressed: _isSubmitting ? null : _sendForApproval,
@@ -912,17 +908,16 @@ class _ShowTourState extends State<ShowTour> {
           icon: Ionicons.pencil_sharp,
           label: 'Modify Plan',
           color: ColorPalette.shark800,
-          onPressed:
-              _isSubmitting
-                  ? null
-                  : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => UpdatePlan(tourPlan: widget.tourPlan),
-                      ),
-                    );
-                  },
+          onPressed: _isSubmitting
+              ? null
+              : () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => UpdatePlan(tourPlan: widget.tourPlan,),
+              ),
+            );
+          },
           width: screenWidth * 0.42,
         ),
       ],
@@ -957,14 +952,7 @@ class _ShowTourState extends State<ShowTour> {
     );
   }
 
-  Widget _modernButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback? onPressed,
-    required double width,
-  }) {
+  Widget _modernButton(BuildContext context, {required IconData icon, required String label, required Color color, required VoidCallback? onPressed, required double width,}) {
     return SizedBox(
       width: width,
       height: 48,
@@ -1091,20 +1079,20 @@ class _ShowTourState extends State<ShowTour> {
     int active = 0;
 
     switch (lowerStatus) {
-      case 'pending': // initial
+      case 'pending':              // initial
         active = 0;
         break;
 
-      case 'approval': // sent for approval
+      case 'approval':             // sent for approval
         active = 1;
         break;
 
-      case 'partially approved': // new added
+      case 'partially approved':   // new added
         titles = ['New', 'Send For Approval', 'Partially Approved'];
         active = 2;
         break;
 
-      case 'confirmed': // final approved
+      case 'confirmed':            // final approved
         titles = ['New', 'Send For Approval', 'Approved'];
         active = 2;
         break;
@@ -1119,8 +1107,9 @@ class _ShowTourState extends State<ShowTour> {
           backgroundColor: Colors.white,
           child: CircleAvatar(
             radius: 11,
-            backgroundColor:
-                isActive ? ColorPalette.seaGreen500 : const Color(0xffC4C4C4),
+            backgroundColor: isActive
+                ? ColorPalette.seaGreen500
+                : const Color(0xffC4C4C4),
           ),
         ),
         customTitle: Text(
@@ -1129,7 +1118,8 @@ class _ShowTourState extends State<ShowTour> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: isActive ? ColorPalette.seaGreen600 : Colors.grey.shade500,
+            color:
+            isActive ? ColorPalette.seaGreen600 : Colors.grey.shade500,
           ),
         ),
       );
@@ -1139,17 +1129,18 @@ class _ShowTourState extends State<ShowTour> {
   /// ✅ Tour Details
   Widget _tourDetailsCard(double screenWidth) {
     return SizedBox(
-      width:
-          Responsive.isMd(context)
-              ? screenWidth
-              : Responsive.isXl(context)
-              ? screenWidth * 0.60
-              : screenWidth * 0.40,
+      width: Responsive.isMd(context)
+          ? screenWidth
+          : Responsive.isXl(context)
+          ? screenWidth * 0.60
+          : screenWidth * 0.40,
       child: Card(
         elevation: 4,
         color: Colors.grey[200],
         shadowColor: Colors.black.withOpacity(0.1),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Column(
@@ -1171,20 +1162,16 @@ class _ShowTourState extends State<ShowTour> {
               _buildDetailRow('Plan Name', widget.tourPlan.serial_no ?? ''),
               _buildDetailRow(
                 'Start Date',
-                DateFormat(
-                  'EEE, dd MMM yyyy',
-                ).format(DateTime.parse(widget.tourPlan.startDate)),
+                DateFormat('EEE, dd MMM yyyy')
+                    .format(DateTime.parse(widget.tourPlan.startDate)),
               ),
               _buildDetailRow(
                 'End Date',
-                DateFormat(
-                  'EEE, dd MMM yyyy',
-                ).format(DateTime.parse(widget.tourPlan.endDate)),
+                DateFormat('EEE, dd MMM yyyy')
+                    .format(DateTime.parse(widget.tourPlan.endDate)),
               ),
               _buildDetailRow(
-                'Planned Tour Days',
-                '${widget.tourPlan.durationInDays}',
-              ),
+                  'Planned Tour Days', '${widget.tourPlan.durationInDays}'),
               _buildDetailRow('Actual Tour Days', '0'),
             ],
           ),
@@ -1402,27 +1389,26 @@ class _ShowTourState extends State<ShowTour> {
     // --------------------------------------------
     // Step 2: Extract visit days from API data
     // --------------------------------------------
-    List<DateTime> visitDates =
-        widget.tourPlan.visits.map((v) => DateTime.parse(v.visitDate)).toList();
+    List<DateTime> visitDates = widget.tourPlan.visits
+        .map((v) => DateTime.parse(v.visitDate))
+        .toList();
 
     // --------------------------------------------
     // Step 3: Find dates where NO visit is present
     // --------------------------------------------
-    List<DateTime> noVisitDates =
-        allDates
-            .where(
-              (date) =>
-                  !visitDates.any(
-                    (vd) =>
-                        vd.year == date.year &&
-                        vd.month == date.month &&
-                        vd.day == date.day,
-                  ),
-            )
-            .toList();
+    List<DateTime> noVisitDates = allDates.where(
+          (date) => !visitDates.any(
+            (vd) =>
+        vd.year == date.year &&
+            vd.month == date.month &&
+            vd.day == date.day,
+      ),
+    ).toList();
 
     return SizedBox(
-      width: Responsive.isMd(context) ? screenWidth - 20 : screenWidth / 3 - 20,
+      width: Responsive.isMd(context)
+          ? screenWidth - 20
+          : screenWidth / 3 - 20,
       child: Column(
         children: [
           // --------------------------------------------
@@ -1447,67 +1433,64 @@ class _ShowTourState extends State<ShowTour> {
           if (noVisitDates.isNotEmpty)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children:
-                  noVisitDates.map((date) {
-                    return Card(
-                      elevation: 3,
-                      color: Colors.grey[200],
-                      margin: const EdgeInsets.only(bottom: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
+              children: noVisitDates.map((date) {
+                return Card(
+                  elevation: 3,
+                  color: Colors.grey[200],
+                  margin: const EdgeInsets.only(bottom: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DateFormat('EEEE, dd MMM yyyy').format(date),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red.shade600,
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              DateFormat('EEEE, dd MMM yyyy').format(date),
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.red.shade600,
-                              ),
-                            ),
-                            const Divider(),
-                            const Text(
-                              "There are no visits on this date.",
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.black,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                        const Divider(),
+                        const Text(
+                          "There are no visits on this date.",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-            ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            )
         ],
       ),
     );
   }
-
   ///VisitCard list ui
   Widget _visitCard(Visit visit) {
     return Card(
       elevation: 3,
       color: Colors.grey[200],
       shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              DateFormat(
-                'EEEE, dd MMM yyyy',
-              ).format(DateTime.parse(visit.visitDate)),
+              DateFormat('EEEE, dd MMM yyyy')
+                  .format(DateTime.parse(visit.visitDate)),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -1523,6 +1506,7 @@ class _ShowTourState extends State<ShowTour> {
               'Type',
               visit.type.replaceAll('_', ' ').capitalizeFirst!,
             ),
+
             if (visit.type != 'new_lead' && visit.type != 'followup_lead')
               _buildVisitRow('Purpose of Visit', visit.visitPurpose ?? 'Nil'),
 
@@ -1538,14 +1522,13 @@ class _ShowTourState extends State<ShowTour> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color:
-                    visit.isApproved == 1
-                        ? Colors.green.shade600
-                        : visit.isApproved == 2
-                        ? Colors.red.shade600
-                        : visit.isApproved == 3
-                        ? Colors.deepOrange
-                        : Colors.orange.shade600,
+                color: visit.isApproved == 1
+                    ? Colors.green.shade600
+                    : visit.isApproved == 2
+                    ? Colors.red.shade600
+                    : visit.isApproved == 3
+                    ? Colors.deepOrange
+                    : Colors.orange.shade600,
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
@@ -1580,25 +1563,11 @@ class _ShowTourState extends State<ShowTour> {
                 ],
               ),
             ),
-            // 🔴 Show reject reason if rejected
-            if (visit.isApproved == 2 && visit.Reject_reason != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 6, left: 4),
-                child: Text(
-                  "Reject Reason: ${visit.Reject_reason}",
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
           ],
         ),
       ),
     );
   }
-
   Widget _buildVisitRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

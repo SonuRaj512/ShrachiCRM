@@ -157,57 +157,16 @@ class _ExpenseReportScreenState extends State<ExpenseReportScreen> {
             infoRow("Approval Status: ", plan.status),
 
             const SizedBox(height: 10),
-            //infoRow("Hotel Amount: ", "₹ 0"),
-            //infoRow("Total DA: ", "₹ ${controller.totalDA.value.toStringAsFixed(2)}"),
-            infoRow("Total Conveyance: ", "₹ ${controller.totalConveyance.value.toStringAsFixed(2)}"),
-            infoRow("Total Non-Conveyance: ", "₹ ${controller.totalNonConveyance.value.toStringAsFixed(2)}"),
-            infoRow("Total Expense: ", "₹ ${controller.totalExpense.value.toStringAsFixed(2)}"),
+            infoRow("Total Expense: ", controller.totalExpense.value.toStringAsFixed(2)),
+            infoRow("Hotel Amount: ", "0"),
+            infoRow("Total DA: ", controller.totalDA.value.toStringAsFixed(2)),
+            infoRow("Total Conveyance: ", controller.totalConveyance.value.toStringAsFixed(2)),
+            infoRow("Total Non-Conveyance: ", controller.totalNonConveyance.value.toStringAsFixed(2)),
 
             const SizedBox(height: 25),
 
-            // ================= EXCEL: CONVEYANCE TABLE =======================
-            sectionTitle("Conveyance Expense"),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: 1050,
-                child: Column(
-                  children: [
-                    excelRow(
-                      [
-                        "Date", "Departure Town", "Departure Time", "Arrival Town",
-                        "Arrival Time", "Mode Of Travel", "Fare(Rs.)", "Remarks"
-                      ],
-                      header: true,
-                      flexes: [2, 2, 2, 2, 2, 2, 2, 3],
-                    ),
-
-                    if (controller.conveyanceList.isEmpty)
-                      excelRow(["No Records", "-", "-", "-", "-", "-", "-", "-"]),
-
-                    ...controller.conveyanceList.map((e) => excelRow(
-                      [
-                        controller.formatDate(e.date),
-                        controller.getVal(e.departureTown),
-                        controller.formatTime(e.departureTime),
-                        controller.getVal(e.arrivalTown),
-                        controller.formatTime(e.arrivalTime),
-                        controller.getVal(e.modeOfTravel),
-                        e.amount.toString(),
-                        controller.getVal(e.remarks)
-                      ],
-                      flexes: [2, 2, 2, 2, 2, 2, 2, 3],
-                    )),
-                  ],
-                ),
-              ),
-            ),
-
-
-            const SizedBox(height: 20),
-
-            // ================ EXCEL: NON CONVEYANCE TABLE ====================
-            sectionTitle("Non-Conveyance Expense"),
+            // ================= EXCEL: NON-CONVEYANCE TABLE =================
+            sectionTitle("Non-Conveyance Details"),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
@@ -246,32 +205,66 @@ class _ExpenseReportScreenState extends State<ExpenseReportScreen> {
 
             const SizedBox(height: 20),
 
-            // ================= EXCEL: LOCAL CONVEYANCE TABLE =================
-            // sectionTitle("Visit Details"),
-            sectionTitle("Local Conveyance Expense"),
+            // ================= EXCEL: CONVEYANCE TABLE =================
+            sectionTitle("Conveyance Details"),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
-                // 1. Width thodi badha di taaki naya column fit ho sake
-                width: 1200,
+                width: 1050,
                 child: Column(
                   children: [
-                    // 2. Header me "Status" add kiya
+                    excelRow(
+                      [
+                        "Date", "Departure Town", "Departure Time", "Arrival Town",
+                        "Arrival Time", "Mode Of Travel", "Fare(Rs.)", "Comments"
+                      ],
+                      header: true,
+                      flexes: [2, 2, 2, 2, 2, 2, 2, 3],
+                    ),
+
+                    if (controller.conveyanceList.isEmpty)
+                      excelRow(["No Records", "-", "-", "-", "-", "-", "-", "-"]),
+
+                    ...controller.conveyanceList.map((e) => excelRow(
+                      [
+                        controller.formatDate(e.date),
+                        controller.getVal(e.departureTown),
+                        controller.formatTime(e.departureTime),
+                        controller.getVal(e.arrivalTown),
+                        controller.formatTime(e.arrivalTime),
+                        controller.getVal(e.modeOfTravel),
+                        e.amount.toString(),
+                        controller.getVal(e.remarks)
+                      ],
+                      flexes: [2, 2, 2, 2, 2, 2, 2, 3],
+                    )),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // ================= EXCEL: VISIT TABLE =================
+            sectionTitle("Visit Details"),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: 1050,
+                child: Column(
+                  children: [
                     excelRow(
                       [
                         "Dealer/Lead", "Planned Date", "Visit Type", "Check In Date",
-                        "Purpose Of Visit", "Outcome", "Status", "Reject Reason" // <--- Naya Column
+                        "Purpose Of Visit", "Outcome"
                       ],
                       header: true,
-                      // 3. Flexes me ek extra value (2) add ki
-                      flexes: [3, 2, 2, 3, 3, 3, 2, 3],
+                      flexes: [3, 2, 2, 3, 3, 3],
                     ),
 
-                    // 4. Empty state me ek extra "-" add kiya
                     if (plan.visits.isEmpty)
-                      excelRow(["No Visits", "-", "-", "-", "-", "-", "-", "-"], flexes: [3, 2, 2, 3, 3, 3, 2, 3]),
+                      excelRow(["No Visits", "-", "-", "-", "-", "-"]),
 
-                    // 5. Data rows me status ki value add ki
                     ...plan.visits.map((v) => excelRow(
                       [
                         controller.getVal(v.name),
@@ -279,52 +272,14 @@ class _ExpenseReportScreenState extends State<ExpenseReportScreen> {
                         controller.getVal(v.type),
                         v.checkins != null ? controller.formatTime(v.checkins!.checkInTime) : "Not Checked In",
                         controller.getVal(v.visitPurpose),
-                        v.checkins?.outcome ?? "-",
-                        controller.getVals(v.is_approved), // <--- Status ki value (v.status use karein)
-                        controller.getVal(v.reject_reason ?? "-"),
+                        v.checkins?.outcome ?? "-"
                       ],
-                      flexes: [3, 2, 2, 3, 3, 3, 2, 3],
+                      flexes: [3, 2, 2, 3, 3, 3],
                     )),
                   ],
                 ),
               ),
             ),
-            // SingleChildScrollView(
-            //   scrollDirection: Axis.horizontal,
-            //   child: SizedBox(
-            //     width: 1050,
-            //     child: Column(
-            //       children: [
-            //         excelRow(
-            //           [
-            //             "Dealer/Lead", "Planned Date", "Visit Type", "Check In Date",
-            //             "Purpose Of Visit", "Outcome",
-            //           ],
-            //           header: true,
-            //           flexes: [3, 2, 2, 3, 3, 3],
-            //         ),
-            //
-            //         if (plan.visits.isEmpty)
-            //           excelRow(["No Visits", "-", "-", "-", "-", "-"]),
-            //
-            //         ...plan.visits.map((v) => excelRow(
-            //           [
-            //             controller.getVal(v.name),
-            //             controller.formatDate(v.visitDate),
-            //             controller.getVal(v.type),
-            //             v.checkins != null ? controller.formatTime(v.checkins!.checkInTime) : "Not Checked In",
-            //             controller.getVal(v.visitPurpose),
-            //             v.checkins?.outcome ?? "-"
-            //           ],
-            //           flexes: [3, 2, 2, 3, 3, 3],
-            //         )),
-            //       ],
-            //     ),
-            //   ),
-            // ),
-
-            // ================= EXCEL: NON-CONVEYANCE TABLE =================
-
             const SizedBox(height: 50),
           ],
         );

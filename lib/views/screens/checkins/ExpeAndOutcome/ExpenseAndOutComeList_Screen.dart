@@ -417,7 +417,6 @@ import '../../../../models/ExpenseAndOutcomeModel.dart';
 import 'ExpenseList_Screen.dart';
 import 'OutcomeList_Screen.dart';
 
-
 class ExpenseAndOutCome_Screeen extends StatefulWidget {
   const ExpenseAndOutCome_Screeen({super.key});
 
@@ -458,7 +457,7 @@ class _ExpenseAndOutCome_ScreeenState extends State<ExpenseAndOutCome_Screeen> {
               _tourData = ApiService().fetchTours(serialNo: value);
             });
           },
-        ): const Text("Tour Details",style: TextStyle(color: Colors.white),),
+        ): const Text("Outcomes List",style: TextStyle(color: Colors.white),),
         actions: [
           _isSearching
               ? IconButton(

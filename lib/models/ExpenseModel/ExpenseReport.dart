@@ -53,20 +53,12 @@ class Visit {
   final String visitDate;
   final String type;
   final String visitPurpose;
-  final int is_approved;
-  final String reject_reason;
   final List<Expense> expenses;
   final CheckIns? checkins;
 
   Visit({
-    required this.name,
-    required this.visitDate,
-    required this.type,
-    required this.visitPurpose,
-    required this.is_approved,
-    required this.reject_reason,
-    required this.expenses,
-    this.checkins,
+    required this.name, required this.visitDate, required this.type,
+    required this.visitPurpose, required this.expenses, this.checkins,
   });
 
   factory Visit.fromJson(Map<String, dynamic> json) {
@@ -77,8 +69,6 @@ class Visit {
       visitDate: json['visit_date'] ?? '',
       type: json['type'] ?? '',
       visitPurpose: json['visit_purpose'] ?? '',
-      is_approved: json['is_approved'] ?? '',
-      reject_reason: json['reject_reason'] ?? '',
       expenses: expensesList,
       checkins: json['checkins'] != null ? CheckIns.fromJson(json['checkins']) : null,
     );

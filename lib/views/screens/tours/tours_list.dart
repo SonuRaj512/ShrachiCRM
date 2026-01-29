@@ -262,11 +262,8 @@ import 'package:shrachi/views/enums/responsive.dart';
 import 'package:shrachi/views/screens/tours/create_plan.dart';
 import 'package:shrachi/views/screens/tours/show_tour.dart';
 
-import '../multicolor_progressbar_screen.dart';
-
 class Tours extends StatefulWidget {
-  final String? targetTourId;
-  const Tours({super.key, this.targetTourId});
+  const Tours({super.key});
 
   @override
   State<Tours> createState() => _ToursState();
@@ -274,54 +271,22 @@ class Tours extends StatefulWidget {
 
 class _ToursState extends State<Tours> {
   final ApiController controller = Get.put(ApiController());
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await controller.fetchTourPlans();
-
-      //Notification ID
-      if (widget.targetTourId != null) {
-        String idToSearch = widget.targetTourId!.toString();
-        controller.searchController.text = idToSearch;
-        controller.filterSearchResults(idToSearch);
-        controller.tourPlanList.refresh();
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchTourPlans();
     });
   }
-  // 🔹 Popup function for locked tours
-  void _showLockedDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: Row(
-          children: [
-            Icon(Ionicons.lock_closed, color: Colors.red),
-            SizedBox(width: 10),
-            Text("Access Denied"),
-          ],
-        ),
-        content: Text(
-          "This tour plan is locked and cannot be accessed because the expenses have been fully approved.",
-          style: TextStyle(fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("OK", style: TextStyle(fontWeight: FontWeight.bold,color: Colors.black)),
-          ),
-        ],
-      ),
-    );
-  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
           title: Center(child: Text('Tour Plan Summary',style: TextStyle(color: Colors.white),))
       ),
       body: Stack(
@@ -349,7 +314,7 @@ class _ToursState extends State<Tours> {
                         controller: controller.searchController,
                         decoration: InputDecoration(
                           prefixIcon: Icon(Ionicons.search),
-                          hintText: 'Search By Tour ID...',
+                          hintText: 'Search by ID, Status, Visit Name...',
                           border: OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.black),
                           ),
@@ -365,10 +330,9 @@ class _ToursState extends State<Tours> {
                   child: Obx(() {
                     if (controller.isLoading.value) {
                       return Center(
-                        child: MultiColorCircularLoader(size: 40)
-                        // CircularProgressIndicator(
-                        //   color: ColorPalette.seaGreen600,
-                        // ),
+                        child: CircularProgressIndicator(
+                          color: ColorPalette.seaGreen600,
+                        ),
                       );
                     }
                     if (controller.tourPlanList.isEmpty) {
@@ -382,8 +346,10 @@ class _ToursState extends State<Tours> {
                         ),
                       );
                     }
-                    return RefreshIndicator(
-                      color: ColorPalette.seaGreen600,
+                    // return //Yahan RefreshIndicator lagaya hai
+                    return RefreshIndicator.noSpinner(
+                      // color: Colors.blue, // Spinner ka color
+                      // backgroundColor: Colors.white,
                       onRefresh: () async => controller.fetchTourPlans(),
                       child: SingleChildScrollView(
                         physics: AlwaysScrollableScrollPhysics(),
@@ -393,182 +359,90 @@ class _ToursState extends State<Tours> {
                           runSpacing: 4,
                           alignment: WrapAlignment.start,
                           children: controller.tourPlanList.map((tourPlan) {
-                            // --- 1. Tour Status ---
-                            String statusText = tourPlan.status.capitalizeFirst ?? tourPlan.status;
-                            Color statusColor;
-                            IconData statusIcon;
-                            switch (tourPlan.status.toLowerCase()) {
-                              case 'pending':
-                                statusColor = Colors.red;
-                                statusIcon = Ionicons.time_outline;
-                                break;
-                              case 'confirmed':
-                                statusText = 'Approved';
-                                statusColor = ColorPalette.seaGreen600;
-                                statusIcon = Ionicons.checkmark_circle_outline;
-                                break;
-                              case 'partially approved':
-                                statusColor = ColorPalette.oranged;
-                                statusIcon = Ionicons.checkmark_circle_outline;
-                                break;
-                              case 'cancelled':
-                                statusText = 'Rejected';
-                                statusColor = Colors.red;
-                                statusIcon = Ionicons.close_circle_outline;
-                                break;
-                              default:
-                                statusColor = ColorPalette.pictonBlue500;
-                                statusIcon = Ionicons.help_circle_outline;
-                            }
+                                // Title
+                                String title = tourPlan.serial_no.toString();
+                                // 'TP-${tourPlan.serial_no.toString().padLeft(8, '0')} '
+                                // '(${tourPlan.durationInDays} Days)';
+                                // Status Logic
+                                String statusText = tourPlan.status.capitalizeFirst ?? tourPlan.status;
+                                Color statusColor;
+                                IconData statusIcon;
+                                switch (tourPlan.status.toLowerCase()) {
+                                  case 'pending':
+                                    statusText = 'Pending';
+                                    statusColor = Colors.red;
+                                    statusIcon = Ionicons.time_outline;
+                                    break;
+                                  case 'confirmed':
+                                    statusText = 'Approved';
+                                    statusColor = ColorPalette.seaGreen600;
+                                    statusIcon = Ionicons.checkmark_circle_outline;
+                                    break;
+                                  case 'partially approved':
+                                    statusText = 'Partially Approved';
+                                    statusColor = ColorPalette.oranged;
+                                    statusIcon = Ionicons.checkmark_circle_outline;
+                                    break;
+                                  case 'cancelled':
+                                    statusText = 'Rejected';
+                                    statusColor = Colors.red;
+                                    statusIcon = Ionicons.close_circle_outline;
+                                    break;
+                                  // case 'confirmed':
+                                  //   statusText = 'confirmed';
+                                  //   statusColor = Colors.green.shade700;
+                                  //   statusIcon = Ionicons.flag_outline;
+                                  //   break;aa
+                                  default:
+                                    statusText = 'Send for approval';
+                                    statusColor = ColorPalette.pictonBlue500;
+                                    statusIcon = Ionicons.help_circle_outline;
+                                }
 
-                            // --- 2. NEW: Expense Status Logic (ONLY FOR APPROVED) ---
-                            final expenseData = tourPlan.expenseOverallStatus;
-                            bool isLocked = expenseData != null && expenseData.status.toLowerCase() == 'confirmed';
-                            String? expText = isLocked ? "Expense: ${expenseData.label}" : null;
-                            Color? expColor = isLocked ? Colors.green.shade800 : null;
-                            IconData? expIcon = isLocked ? Ionicons.checkmark_done_circle : null;
-                            // String? expText;
-                            // Color? expColor;
-                            // IconData? expIcon;
+                                return SizedBox(
+                                  width:
+                                      Responsive.isMd(context)
+                                          ? screenWidth - 40
+                                          : Responsive.isXl(context)
+                                          ? (screenWidth / 2) - 30
+                                          : (screenWidth / 3) -
+                                              (20 * 2 / 3) -
+                                              10,
+                                  child: TourPlanWidget(
+                                    title: title,
+                                    onTap: () async {
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ShowTour(
+                                            tourPlan: tourPlan,
+                                            status: tourPlan.status,
+                                          ),
+                                        ),
+                                      );
 
-                            // Validation: Status null na ho AUR status specifically 'approved' ho
-                            if (expenseData != null && expenseData.status.toLowerCase() == 'confirmed') {
-                              expText = "Expense: ${expenseData.label}"; // e.g., "Expense: Fully Approved"
-                              expColor = Colors.green.shade700;
-                              expIcon = Ionicons.checkmark_done_circle;
-                            }
-
-                            return SizedBox(
-                              width: Responsive.isMd(context)
-                                  ? screenWidth - 40
-                                  : (screenWidth / 3) - 20,
-                              child: TourPlanWidget(
-                                title: tourPlan.serial_no ?? 'N/A',
-                                isLocked: isLocked,
-                                onTap: () async {
-                                  if (isLocked) {
-                                    _showLockedDialog(context);
-                                  } else {
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ShowTour(
-                                              tourPlan: tourPlan,
-                                              status: tourPlan.status,
-                                            ),
-                                      ),
-                                    );
-
-                                    // 🔄 Refresh after returning from next screen
-                                    if (result == true) {
-                                      setState(() {
-                                        // Re-fetch or refresh your data here
-                                        controller.fetchTourPlans();
-                                      });
-                                    }
-                                  }
-                                },
-                                statusColor: statusColor,
-                                intervalIcon: Ionicons.calendar_outline,
-                                intervalText: controller.formatDateRange(
-                                  tourPlan.startDate,
-                                  tourPlan.endDate,
-                                ),
-                                statsIcon: statusIcon,
-                                statsText: statusText,
-
-                                // --- 3. Pass Expense details to Widget ---
-                                expenseText: expText,
-                                expenseColor: expColor,
-                                expenseIcon: expIcon,
-                              ),
-                            );
+                                      // 🔄 Refresh after returning from next screen
+                                      if (result == true) {
+                                        setState(() {
+                                          // Re-fetch or refresh your data here
+                                          controller.fetchTourPlans();
+                                        });
+                                      }
+                                    },
+                                    statusColor: statusColor, //yeh add kiya
+                                    intervalIcon: Ionicons.calendar_outline,
+                                    intervalText: controller.formatDateRange(
+                                      tourPlan.startDate,
+                                      tourPlan.endDate,
+                                    ),
+                                    statsIcon: statusIcon,
+                                    statsText: statusText,
+                                    // extraText: tourPlan.visits.isNotEmpty
+                                    //     ? "Type: ${tourPlan.visits.first.type}"
+                                    //     : "Type: N/A",
+                                  ),
+                                );
                           }).toList(),
-                          // children: controller.tourPlanList.map((tourPlan) {
-                          //       // Title
-                          //       String title = tourPlan.serial_no.toString();
-                          //       // 'TP-${tourPlan.serial_no.toString().padLeft(8, '0')} '
-                          //       // '(${tourPlan.durationInDays} Days)';
-                          //       // Status Logic
-                          //       String statusText = tourPlan.status.capitalizeFirst ?? tourPlan.status;
-                          //       Color statusColor;
-                          //       IconData statusIcon;
-                          //       switch (tourPlan.status.toLowerCase()) {
-                          //         case 'pending':
-                          //           statusText = 'Pending';
-                          //           statusColor = Colors.red;
-                          //           statusIcon = Ionicons.time_outline;
-                          //           break;
-                          //         case 'confirmed':
-                          //           statusText = 'Approved';
-                          //           statusColor = ColorPalette.seaGreen600;
-                          //           statusIcon = Ionicons.checkmark_circle_outline;
-                          //           break;
-                          //         case 'partially approved':
-                          //           statusText = 'Partially Approved';
-                          //           statusColor = ColorPalette.oranged;
-                          //           statusIcon = Ionicons.checkmark_circle_outline;
-                          //           break;
-                          //         case 'cancelled':
-                          //           statusText = 'Rejected';
-                          //           statusColor = Colors.red;
-                          //           statusIcon = Ionicons.close_circle_outline;
-                          //           break;
-                          //         // case 'confirmed':
-                          //         //   statusText = 'confirmed';
-                          //         //   statusColor = Colors.green.shade700;
-                          //         //   statusIcon = Ionicons.flag_outline;
-                          //         //   break;aa
-                          //         default:
-                          //           statusText = 'Send for approval';
-                          //           statusColor = ColorPalette.pictonBlue500;
-                          //           statusIcon = Ionicons.help_circle_outline;
-                          //       }
-                          //
-                          //       return SizedBox(
-                          //         width:
-                          //             Responsive.isMd(context)
-                          //                 ? screenWidth - 40
-                          //                 : Responsive.isXl(context)
-                          //                 ? (screenWidth / 2) - 30
-                          //                 : (screenWidth / 3) -
-                          //                     (20 * 2 / 3) -
-                          //                     10,
-                          //         child: TourPlanWidget(
-                          //           title: title,
-                          //           onTap: () async {
-                          //             final result = await Navigator.push(
-                          //               context,
-                          //               MaterialPageRoute(
-                          //                 builder: (context) => ShowTour(
-                          //                   tourPlan: tourPlan,
-                          //                   status: tourPlan.status,
-                          //                 ),
-                          //               ),
-                          //             );
-                          //
-                          //             // 🔄 Refresh after returning from next screen
-                          //             if (result == true) {
-                          //               setState(() {
-                          //                 // Re-fetch or refresh your data here
-                          //                 controller.fetchTourPlans();
-                          //               });
-                          //             }
-                          //           },
-                          //           statusColor: statusColor, //yeh add kiya
-                          //           intervalIcon: Ionicons.calendar_outline,
-                          //           intervalText: controller.formatDateRange(
-                          //             tourPlan.startDate,
-                          //             tourPlan.endDate,
-                          //           ),
-                          //           statsIcon: statusIcon,
-                          //           statsText: statusText,
-                          //           // extraText: tourPlan.visits.isNotEmpty
-                          //           //     ? "Type: ${tourPlan.visits.first.type}"
-                          //           //     : "Type: N/A",
-                          //         ),
-                          //       );
-                          // }).toList(),
                         ),
                       ),
                     );
@@ -577,6 +451,7 @@ class _ToursState extends State<Tours> {
               ],
             ),
           ),
+
           //FAB
           Positioned(
             bottom: 30,
@@ -601,17 +476,12 @@ class _ToursState extends State<Tours> {
 class TourPlanWidget extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
-  final Color statusColor;
+  final Color statusColor; // 👈 new field
   final IconData intervalIcon;
   final String intervalText;
   final IconData statsIcon;
   final String statsText;
   final String? extraText;
-  final String? expenseText;
-  final Color? expenseColor;
-  final IconData? expenseIcon;
-  final bool isLocked;
-
 
   const TourPlanWidget({
     super.key,
@@ -623,17 +493,12 @@ class TourPlanWidget extends StatelessWidget {
     required this.statsIcon,
     required this.statsText,
     this.extraText,
-    this.expenseText,
-    this.expenseColor,
-    this.expenseIcon,
-    this.isLocked = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final Color cardBgColor = isLocked ? const Color(0xFFD6D6D6) : const Color(0xffe4f0fa);
     return Card(
-      color: cardBgColor,
+      color: Color(0xffe4f0fa), // Card ka background status ke hisaab se
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
@@ -643,35 +508,15 @@ class TourPlanWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔹 Title Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: statusColor,
-                    ),
-                  ),
-                  // Agar isLocked true hai to Red Lock Icon dikhega
-                  if (isLocked)
-                    const Icon(
-                      Ionicons.lock_closed,
-                      color: Colors.red,
-                      size: 20,
-                    ),
-                ],
+              // 🔹 Title
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: statusColor, // status ke hisaab se text color
+                ),
               ),
-              // Text(
-              //   title,
-              //   style: TextStyle(
-              //     fontWeight: FontWeight.bold,
-              //     fontSize: 16,
-              //     color: statusColor,
-              //   ),
-              // ),
               SizedBox(height: 6),
 
               // 🔹 Interval Row
@@ -711,24 +556,6 @@ class TourPlanWidget extends StatelessWidget {
                   ),
                 ],
               ),
-              // 🔹 Expense Status Section
-              if (expenseText != null) ...[
-                SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(expenseIcon, size: 18, color: expenseColor),
-                    SizedBox(width: 8),
-                    Text(
-                      expenseText!,
-                      style: TextStyle(
-                        color: expenseColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
